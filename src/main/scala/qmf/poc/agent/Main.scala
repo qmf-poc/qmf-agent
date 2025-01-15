@@ -1,5 +1,6 @@
 package qmf.poc.agent
 
+import qmf.poc.agent.config.AgentConfig
 import zio.*
 
 object Main extends ZIOAppDefault:
