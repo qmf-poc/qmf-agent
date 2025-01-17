@@ -16,8 +16,7 @@ lazy val root = project
       "dev.zio" %% "zio" % zioVersion,
       "dev.zio" %% "zio-config" % zioConfigVersion,
       "dev.zio" %% "zio-http" % zioHttpVersion,
-      "org.apache.lucene" % "lucene-core" % luceneVersion,
-      "org.apache.lucene" % "lucene-queryparser" % luceneVersion,
+      "com.ibm.db2" % "jcc" % "12.1.0.0",
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "org.scalameta" %% "munit" % "1.0.4" % Test
     )

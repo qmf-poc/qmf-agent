@@ -1,38 +1,14 @@
 package qmf.poc.agent.config
 
-import zio.config.*
+import zio.Config
 import zio.Config.{int, string}
-import zio.{Config, ConfigProvider, ZLayer}
+import zio.config.*
 
-/**
- * Define the accessors for the agent configuration
- *
- * @param serviceHostName the hostname of the service
- * @param servicePort the port of the service
- */
-case class AgentConfig(serviceHostName: String, servicePort: Int)
+case class AgentConfig(serviceHostName: String, servicePort: Int, connectionString: String)
 
 object AgentConfig:
-  /**
-   * Define the configuration descriptor for the agent
-   * as an implicit value to be used by the ZIO environment
-   * for ex. ZIO.config[AgentConfig]
-   * @return the configuration descriptor
-   */
-  private val agentConfig: Config[AgentConfig] = (
+  given Config[AgentConfig] = (
     string("serviceHostName") ?? "Service hostname" zip
-      int("servicePort") ?? "Service port"
+      int("servicePort") ?? "Service port" zip
+      string("connectionString") ?? "DB2 connection string"
     ).to[AgentConfig]
-
-  /**
-   * Define the ZLayer for the agent configuration
-   * to be used by the ZIO environment
-   * for ex. ZIO.service[AgentConfig]
-   * and provide the configuration to the environment as
-   * for ex. `provide(AgentConfig.layer)`
-   * @return the ZLayer for the agent configuration
-   */
-  val layer: ZLayer[Any, Config.Error, AgentConfig] = ZLayer(ConfigProvider.fromMap(Map(
-    "serviceHostName" -> "localhost",
-    "servicePort" -> "8080"
-  )).load(agentConfig))

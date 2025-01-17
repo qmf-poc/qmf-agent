@@ -10,9 +10,18 @@ val wsRequestsQueue = Queue.bounded[JSONRPCRequest](100)
 val wsResponsesQueue = Queue.bounded[JSONRPCResponse](100)
 
 object Main extends ZIOAppDefault:
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] =
+    Runtime.setConfigProvider(
+      ConfigProvider.fromMap(Map(
+        "serviceHostName" -> "localhost",
+        "servicePort" -> "8080",
+        "connectionString" -> "jdbc:db2://localhost:50000/sample:user=db2inst1;password=password;",
+      ))
+    )
+    
   override def run: ZIO[Any, Throwable, Unit] =
     val program = for
-      config <- ZIO.service[AgentConfig]
+      config <- ZIO.config[AgentConfig]
       _ <- webSocketApp
       _ <- ZIO.logInfo("Agent started")
       requests <- ZIO.service[Queue[JSONRPCRequest]]
@@ -23,7 +32,6 @@ object Main extends ZIOAppDefault:
 
     ZIO.scoped(program)
       .provide(
-        AgentConfig.layer,
         Client.default,
         ZLayer(wsRequestsQueue),
         ZLayer(wsResponsesQueue))
