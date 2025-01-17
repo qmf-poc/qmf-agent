@@ -2,7 +2,7 @@ package qmf.poc.agent.ws
 
 import qmf.poc.agent.ws.protocol.{JSONRPCRequest, JSONRPCResponse}
 import zio.http.*
-import zio.http.ChannelEvent.{Read, Registered}
+import zio.http.ChannelEvent.{Read, Registered, UserEvent, UserEventTriggered}
 import zio.{Queue, Ref, Scope, UIO, ZIO}
 
 /**
@@ -30,11 +30,12 @@ private def responsesProcessor(channel: WebSocketChannel): ZIO[Queue[JSONRPCResp
   for {
     queue <- ZIO.service[Queue[JSONRPCResponse]]
     response <- channel.receiveAll {
-      case Hand
       case Read(WebSocketFrame.Text(text)) =>
         queue.offer(JSONRPCResponse(text))
       case Registered =>
         ZIO.logInfo("Registered").unit
+      case UserEventTriggered(UserEvent.HandshakeComplete) =>
+        ZIO.logInfo("Handshake complete").unit
       case other =>
         ZIO.logInfo(s"Unknown response $other").unit
     }
