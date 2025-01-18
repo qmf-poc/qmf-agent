@@ -1,6 +1,5 @@
 package qmf.poc.agent
 
-import qmf.poc.agent.config.AgentConfig
 import qmf.poc.agent.ws.protocol.{JSONRPCRequest, JSONRPCResponse, PingRequest}
 import qmf.poc.agent.ws.webSocketApp
 import zio.*
@@ -15,23 +14,25 @@ object Main extends ZIOAppDefault:
       ConfigProvider.fromMap(Map(
         "serviceHostName" -> "localhost",
         "servicePort" -> "8080",
-        "connectionString" -> "jdbc:db2://localhost:50000/sample:user=db2inst1;password=password;",
+        "db2host" -> "qmfpoc.s4y.solutions",
+        "db2port" -> "50000",
+        "db2database" -> "sample:user=db2inst1",
       ))
     )
-    
-  override def run: ZIO[Any, Throwable, Unit] =
-    val program = for
-      config <- ZIO.config[AgentConfig]
-      _ <- webSocketApp
-      _ <- ZIO.logInfo("Agent started")
-      requests <- ZIO.service[Queue[JSONRPCRequest]]
-      _ <- requests.offer(PingRequest("Hello"))
-      _ <- ZIO.sleep(1.second)
-      _ <- ZIO.logInfo("Exiting")
-    yield ()
 
-    ZIO.scoped(program)
-      .provide(
+  val program: ZIO[Queue[JSONRPCRequest] & Queue[JSONRPCResponse] & Client & Scope, Throwable, Unit] = for
+    config <- ZIO.config[AgentConfig]
+    _ <- webSocketApp
+    _ <- ZIO.logInfo("Agent started")
+    requests <- ZIO.service[Queue[JSONRPCRequest]]
+    _ <- requests.offer(PingRequest("Hello"))
+    _ <- ZIO.sleep(1.second)
+    _ <- ZIO.logInfo("Exiting")
+  yield ()
+
+  override def run: ZIO[Scope, Throwable, Unit] =
+    program.provide(
         Client.default,
-        ZLayer(wsRequestsQueue),
-        ZLayer(wsResponsesQueue))
+        ZLayer.fromZIO(wsRequestsQueue),
+        ZLayer.fromZIO(wsResponsesQueue),
+      )

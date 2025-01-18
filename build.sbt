@@ -16,6 +16,7 @@ lazy val root = project
       "dev.zio" %% "zio" % zioVersion,
       "dev.zio" %% "zio-config" % zioConfigVersion,
       "dev.zio" %% "zio-http" % zioHttpVersion,
+      "dev.zio" %% "zio-jdbc" % "0.1.2",
       "com.ibm.db2" % "jcc" % "12.1.0.0",
       "dev.zio" %% "zio-test" % zioVersion % Test,
       "org.scalameta" %% "munit" % "1.0.4" % Test
