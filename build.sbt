@@ -12,12 +12,10 @@ lazy val root = project
   .in(file("."))
   .settings(
     name := "agent",
+    assembly / mainClass := Some("mf.poc.agent.Main"),
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % zioVersion,
-      "dev.zio" %% "zio-config" % zioConfigVersion,
-      "dev.zio" %% "zio-http" % zioHttpVersion,
+      "io.spray" %%  "spray-json" % "1.3.6",
       "com.ibm.db2" % "jcc" % "12.1.0.0",
-      "dev.zio" %% "zio-test" % zioVersion % Test,
       "org.scalameta" %% "munit" % "1.0.4" % Test
     )
   )
