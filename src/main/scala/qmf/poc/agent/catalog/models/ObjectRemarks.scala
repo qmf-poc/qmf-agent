@@ -1,8 +1,8 @@
 package qmf.poc.agent.catalog.models
 
 class ObjectRemarks(
-  owner: String,
-  name: String,
-  `type`: String,
-  remarks: String,
+  val owner: String,
+  val name: String,
+  val `type`: String,
+  val remarks: String,
 )

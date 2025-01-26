@@ -1,4 +1,6 @@
 package qmf.poc.agent.transport
 
-trait Receiver[+M]:
-  def receive: M
+import qmf.poc.agent.transport.ws.OutgoingMessage
+
+trait Receiver:
+  def receive: OutgoingMessage
