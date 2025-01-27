@@ -85,5 +85,5 @@ def websocketClient(url: String = "wss://echo.websocket.org", broker: Broker) (u
           Await.result(ws.sendClose(WebSocket.NORMAL_CLOSURE, "Done").asScala, 1.second)
           client.shutdown()
           outgoingListener.cancel(true)
-          println("ws closed")
+          println("Websocket closed event sent to peer")
     )

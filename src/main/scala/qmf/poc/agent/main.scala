@@ -2,8 +2,8 @@ package qmf.poc.agent
 
 import qmf.poc.agent.vth.VirtualThreadExecutionContext
 
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.{Await, ExecutionContext, Promise}
 import qmf.poc.agent.transport.ws.{Alive, Broker, BrokerLive, Ping, websocketClient}
 
 given ec: ExecutionContext = VirtualThreadExecutionContext()
@@ -14,6 +14,14 @@ given ec: ExecutionContext = VirtualThreadExecutionContext()
 
   broker.put(Alive("poc agent"))
 
-  Thread.sleep(1000)
-  ws.close()
-  println("exit")
+  val terminationPromise = Promise[Unit]()
+  Runtime.getRuntime.addShutdownHook(new Thread(new Runnable() {
+    def run(): Unit = {
+      println("SIGTERM received. Cleaning up...")
+      ws.close()
+      terminationPromise.trySuccess(())
+    }
+  }))
+  println("Agent started. Press Ctrl-C to exit...")
+  Await.result(terminationPromise.future, Duration.Inf)
+  println("Shutdown")
