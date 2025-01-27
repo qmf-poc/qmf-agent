@@ -71,7 +71,7 @@ def websocketClient(url: String = "wss://echo.websocket.org", broker: Broker) (u
             try {
               while (!Thread.currentThread().isInterrupted) {
                 val message = broker.take
-                println(s"==> $message")
+                println(s"==> ${message.jsonrpc}")
                 ws.sendText(message.jsonrpc, true)
               }
             } catch {

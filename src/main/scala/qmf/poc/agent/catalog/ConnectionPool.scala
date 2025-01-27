@@ -21,8 +21,8 @@ class ConnectionPool(val db2cs: String, val db2user: String, val db2password: St
   // TODO: error
   def connection: Option[Connection] =
     connectionOpt.filter(_.isValid(100)).orElse
-      updateConnection()
-      connectionOpt
+    updateConnection()
+    connectionOpt
 
   def isValid: Boolean =
     connectionOpt match
@@ -41,6 +41,7 @@ class ConnectionPool(val db2cs: String, val db2user: String, val db2password: St
 object ConnectionPool:
   private var previousOption: Option[ConnectionPool] = None
   private val db2cs = "jdbc:db2://qmfpoc.s4y.solutions:50000/sample"
+
   def memo(db2user: String, db2password: String): ConnectionPool =
     previousOption match
       case Some(previous) =>
@@ -52,8 +53,20 @@ object ConnectionPool:
           previousOption = Some(connectionPool)
           connectionPool
       case None => new ConnectionPool(db2cs, db2user, db2password)
-      
-  def memo( db2user: String, db2password: String, previousOption: Option[ConnectionPool]): ConnectionPool =
+
+  def memo(db2cs: String, db2user: String, db2password: String): ConnectionPool =
+    previousOption match
+      case Some(previous) =>
+        if (previous.db2cs == db2cs && previous.db2user == db2user && previous.db2password == db2password && previous.isValid)
+          previous
+        else
+          previous.close()
+          val connectionPool = new ConnectionPool(db2cs, db2user, db2password)
+          previousOption = Some(connectionPool)
+          connectionPool
+      case None => new ConnectionPool(db2cs, db2user, db2password)
+
+  def memo(db2user: String, db2password: String, previousOption: Option[ConnectionPool]): ConnectionPool =
     previousOption match
       case Some(previous) =>
         if (previous.db2cs == db2cs && previous.db2user == db2user && previous.db2password == db2password && previous.isValid)

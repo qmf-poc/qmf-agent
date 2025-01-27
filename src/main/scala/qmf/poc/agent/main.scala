@@ -14,6 +14,6 @@ given ec: ExecutionContext = VirtualThreadExecutionContext()
 
   broker.put(Alive("poc agent"))
 
-  Thread.sleep(100000)
+  Thread.sleep(1000)
   ws.close()
   println("exit")

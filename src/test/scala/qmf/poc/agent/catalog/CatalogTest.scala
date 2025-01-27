@@ -41,6 +41,17 @@ class CatalogTest extends munit.FunSuite:
     val ast = Seq(o1, o2).toJson
     val json = ast.compactPrint
     println(json)
+    
+  test("json catalogs"):
+    val pool = ConnectionPool("jdbc:db2://qmfpoc.s4y.solutions:50000/sample", "db2inst1", "password")
+    val ts = System.currentTimeMillis()
+    val catalog = CatalogProvider(pool).catalog match
+      case Some(catalog) =>
+        println(System.currentTimeMillis() - ts)
+        println(catalog.toJson)
+        assert(true)
+      case _ => fail("No connection")
+    println(catalog.toJson)
 
   test("get catalog"):
     val pool = ConnectionPool("jdbc:db2://qmfpoc.s4y.solutions:50000/sample", "db2inst1", "password")

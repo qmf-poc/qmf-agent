@@ -16,6 +16,7 @@ object CatalogJsonFormat extends DefaultJsonProtocol {
         "name" -> JsString(o.name),
         "owner" -> JsString(o.owner),
         "seq" -> JsNumber(o.seq),
+        "type" -> JsString(o.`type`),
       )
 
     def read(value: JsValue): ObjectData = ???
@@ -40,8 +41,8 @@ object CatalogJsonFormat extends DefaultJsonProtocol {
         "objectLevel" -> JsNumber(o.objectLevel),
         "subType" -> JsString(o.subType),
         "model" -> JsString(o.model),
-        "model" -> JsString(o.created),
-        "lastUsed" -> JsString(o.lastUsed),
+        "created" -> JsString(o.created),
+        "lastUser" -> JsString(o.lastUsed),
         "modified" -> JsString(o.modified),
         "restricted" -> JsString(o.restricted),
       )
@@ -51,12 +52,9 @@ object CatalogJsonFormat extends DefaultJsonProtocol {
   given JsonFormat[Catalog] with {
     def write(o: Catalog): JsObject =
       JsObject(
-        // "name" -> JsArray(o.objectData),
         "objectData" -> JsArray(o.objectData.map(_.toJson).toVector),
         "objectRemarks" -> JsArray(o.objectRemarks.map(_.toJson).toVector),
         "objectDirectories" -> JsArray(o.objectDirectories.map(_.toJson).toVector),
-        //"owner" -> JsString(o.objectRemarks),
-        // "seq" -> JsNumber(o.objectDirectory),
       )
 
     def read(value: JsValue): Catalog = ???

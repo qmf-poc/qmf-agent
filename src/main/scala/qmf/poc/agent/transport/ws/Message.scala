@@ -22,7 +22,7 @@ case class Alive(agent: String) extends OutgoingMessage:
   val jsonrpc: String = s"""{"jsonrpc": "2.0", "method": "alive", "params" : "$agent"}"""
 
 case class Snapshot(agent: String, catalog: Catalog) extends OutgoingMessage:
-  val jsonrpc: String =  s"""{"jsonrpc": "2.0", "method": "snapshot", "params": ${catalog.toJson}"""
+  val jsonrpc: String =  s"""{"jsonrpc": "2.0", "method": "snapshot", "params": ${catalog.toJson}}"""
 
 trait IncomingMessage
 
