@@ -1,4 +1,4 @@
-scalaVersion := "3.6.2"
+scalaVersion := "3.6.3"
 version := "0.1.0-SNAPSHOT"
 organization := "qmf.poc.service"
 organizationName := "qmf"
@@ -12,7 +12,7 @@ lazy val root = project
   .in(file("."))
   .settings(
     name := "agent",
-    assembly / mainClass := Some("mf.poc.agent.Main"),
+    assembly / mainClass := Some("qmf.poc.agent.main"),
     libraryDependencies ++= Seq(
       "io.spray" %%  "spray-json" % "1.3.6",
       "com.ibm.db2" % "jcc" % "12.1.0.0",

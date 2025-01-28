@@ -10,7 +10,7 @@ given ec: ExecutionContext = VirtualThreadExecutionContext()
 
 @main def main(): Unit =
   val broker = BrokerLive()
-  val ws = Await.result(websocketClient("ws://localhost:8080/agent", broker), 10.second)
+  val ws = Await.result(websocketClient("ws://localhost:8081/agent", broker), 10.second)
 
   broker.put(Alive("poc agent"))
 
