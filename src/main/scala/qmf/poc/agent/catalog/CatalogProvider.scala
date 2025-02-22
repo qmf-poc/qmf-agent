@@ -48,17 +48,21 @@ class CatalogProvider(connectionPool: ConnectionPool){
         remarks += new ObjectRemarks(owner, name, `type`, rem)
     }.get
 
-    Using.Manager { use =>
-      val stmt = use(connection.createStatement)
-      val rs = use(stmt.executeQuery(CatalogProvider.queryData))
-      while (rs.next)
-        val owner = rs.getString("OWNER")
-        val name = rs.getString("NAME")
-        val `type` = rs.getString("TYPE")
-        val seq = rs.getShort("SEQ")
-        val bytes = rs.getBytes("APPLDATA")
-        data += ObjectData(owner, name, `type`, seq, bytes)
-    }.get
+    try {
+      Using.Manager { use =>
+        val stmt = use(connection.createStatement)
+        val rs = use(stmt.executeQuery(CatalogProvider.queryData))
+        while (rs.next)
+          val owner = rs.getString("OWNER")
+          val name = rs.getString("NAME")
+          val `type` = rs.getString("TYPE")
+          // val seq = rs.getShort("SEQ")
+          // val bytes = rs.getBytes("APPLDATA")
+          val bytes = rs.getBytes("CONCATENATED_APPLDATA")
+          data += ObjectData(owner, name, `type`, 1, bytes)
+      }.get
+    }catch
+      case e: Exception => println(e)
 
     Some(Catalog(data.toSeq, remarks.toSeq, directories.toSeq))
   end catalog
@@ -74,7 +78,17 @@ object CatalogProvider {
   // TODO: hardcoded schema
   private val queryDirectory = "SELECT * FROM Q.OBJECT_DIRECTORY"
   private val queryRemarks = "SELECT * FROM Q.OBJECT_REMARKS"
-  private val queryData = "SELECT * FROM Q.OBJECT_DATA"
+  private val queryData = """SELECT
+                            |  OWNER,
+                            |  NAME,
+                            |  "TYPE",
+                            |  LISTAGG(APPLDATA, '') WITHIN GROUP (ORDER BY SEQ) AS CONCATENATED_APPLDATA
+                            |FROM
+                            |  Q.OBJECT_DATA
+                            |GROUP BY
+                            |  OWNER, NAME, "TYPE"""".stripMargin
+
+    ///"SELECT * FROM Q.OBJECT_DATA"
   
   def apply(connectionPool: ConnectionPool) = new CatalogProvider(connectionPool)
 }

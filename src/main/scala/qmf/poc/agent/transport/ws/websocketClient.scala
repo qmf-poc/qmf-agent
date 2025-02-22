@@ -1,15 +1,14 @@
 package qmf.poc.agent.transport.ws
 
-import qmf.poc.agent.transport.{Receiver, Sender, TransportDecoder, TransportEncoder}
 import spray.json.JsonParser.ParsingException
-import spray.json.{JsObject, JsString, JsValue, given}
+import spray.json.{JsObject, JsString, given}
 
 import java.net.URI
 import java.net.http.{HttpClient, WebSocket}
 import java.util
-import java.util.concurrent.{CompletionStage, Executors, LinkedBlockingQueue}
+import java.util.concurrent.{CompletionStage, Executors}
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{Await, ExecutionContext, Promise}
 import scala.jdk.FutureConverters.*
 
 // TODO: shutdown?
