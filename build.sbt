@@ -19,4 +19,9 @@ lazy val root = project
       "org.scalameta" %% "munit" % "1.1.0" % Test
     )
   )
-unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "resources"
+//unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "resources"
+Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "resources"
+ThisBuild / assemblyMergeStrategy := {
+  case PathList("module-info.class") => MergeStrategy.first
+  case x                             => (ThisBuild / assemblyMergeStrategy).value(x)
+}
