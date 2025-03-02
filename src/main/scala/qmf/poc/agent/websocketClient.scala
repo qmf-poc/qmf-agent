@@ -1,0 +1,135 @@
+package qmf.poc.agent
+
+import org.slf4j.{Logger, LoggerFactory}
+import qmf.poc.agent
+import qmf.poc.agent.transport.*
+import spray.json.JsonParser.ParsingException
+import spray.json.{JsObject, JsString, given}
+
+import java.net.URI
+import java.net.http.{HttpClient, WebSocket}
+import java.util
+import java.util.concurrent.{CompletionStage, Executor, ExecutorService, Executors, StructuredTaskScope, ThreadFactory}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.jdk.FutureConverters.given
+
+private def makeWebsocketListener(
+    logger: Logger,
+    incomingQueue: WriteOnlyQueue[IncomingMessage]
+): (Future[Unit], WebSocket.Listener) =
+  val completionPromise = Promise[Unit]
+  (
+    completionPromise.future,
+    new WebSocket.Listener():
+      override def onOpen(webSocket: WebSocket): Unit = {
+        logger.debug(s"""onOpen using sub-protocol "${webSocket.getSubprotocol}"""")
+        super.onOpen(webSocket)
+      }
+
+      override def onText(webSocket: WebSocket, frame: CharSequence, last: Boolean): CompletionStage[?] = {
+        logger.debug(s"<== $frame")
+        val websocketMessage = frame.toString
+        try
+          val seq = websocketMessage.parseJson.asJsObject.getFields("method", "params")
+          seq match
+            case Seq(JsString("pong"), JsString(payload)) => incomingQueue.put(Pong(payload))
+            case Seq(JsString("requestSnapshot"), JsObject(params)) =>
+              params.toSeq match
+                case Seq(("password", JsString(password)), ("user", JsString(user))) =>
+                  incomingQueue.put(RequestSnapshot(user, password))
+                case _ => handleError(frame, Exception("Unknown method and/or params type"))
+            case _ => handleError(frame, Exception("Unknown method and/or params type"))
+        catch case e: ParsingException => handleError(frame, e)
+        super.onText(webSocket, frame, last)
+      }
+
+      override def onClose(webSocket: WebSocket, statusCode: Int, reason: String): CompletionStage[?] = {
+        logger.debug(s"WebSocket connection closed by peer ($statusCode): $reason")
+
+        completionPromise.trySuccess(())
+        super.onClose(webSocket, statusCode, reason)
+      }
+
+      override def onError(webSocket: WebSocket, error: Throwable): Unit = {
+        logger.warn("error", error)
+        completionPromise.tryFailure(error)
+        super.onError(webSocket, error)
+      }
+
+      private def handleError(frame: CharSequence, exception: Exception): Unit =
+        logger.warn(s""""$frame"""", exception)
+  )
+
+enum WebSocketResult:
+  case Error
+  case PeerClosed
+  case Interrupted
+
+private def getHttpClient(logger: Logger)(using es: ExecutorService): HttpClient =
+  logger.debug("HTTP Client creating...")
+  val client: HttpClient = HttpClient
+    .newBuilder()
+    .executor(es) // TODO: Current thread not owner or thread in flock
+    .build()
+  logger.debug("HTTP Client created")
+  client
+
+private def getWebSocket(logger: Logger, listener: WebSocket.Listener, httpClient: HttpClient, url: String): WebSocket =
+  logger.debug(s"Connecting $url...")
+
+  val wsFuture = httpClient
+    .newWebSocketBuilder()
+    .buildAsync(new URI(url), listener)
+    .asScala
+
+  Await.result(wsFuture, Duration.Inf)
+
+private def outgoingQueueLoop(
+    logger: Logger,
+    webSocket: WebSocket,
+    outgoingQueue: ReadOnlyQueue[OutgoingMessage]
+): WebSocketResult =
+  while !Thread.currentThread().isInterrupted do
+    try
+      logger.debug("wait for outgoing message queue")
+      val message = outgoingQueue.take
+      logger.debug(s"==> $message")
+      webSocket.sendText(message.jsonrpc, true)
+    catch
+      case _: InterruptedException =>
+        logger.warn("Outgoing messages listener interrupted")
+        Thread.currentThread().interrupt() // Preserve interrupt status
+      case e: Exception =>
+        logger.warn(s"Unexpected error while processing message: ${e.getMessage}", e)
+  WebSocketResult.Interrupted
+
+def runWebsocketClient(
+    incomingQueue: WriteOnlyQueue[IncomingMessage],
+    outgoingQueue: ReadOnlyQueue[OutgoingMessage],
+    url: String
+)(using ec: ExecutionContext, es: ExecutorService, tf: ThreadFactory) =
+  val logger = LoggerFactory.getLogger("ws")
+
+  val httpClient = getHttpClient(logger)
+  val scope = new StructuredTaskScope("websocket", tf)
+
+  val (completionFuture, listener) = makeWebsocketListener(logger, incomingQueue)
+  try
+    val webSocket = getWebSocket(logger, listener, httpClient, url)
+    try
+      scope.fork(() => {
+        outgoingQueueLoop(logger, webSocket, outgoingQueue)
+      })
+      Await.ready(completionFuture, Duration.Inf)
+    finally webSocket.sendClose(0, "Exit")
+  catch
+    case _: InterruptedException => logger.debug("Interrupted")
+    case e: Exception => logger.warn("Connection error", e)
+  finally
+    logger.info("HTTP Client shut down");
+    httpClient.shutdown()
+    logger.debug("Websocket scope shutting down...");
+    scope.shutdown()
+    scope.join()
+    logger.debug("Websocket scope shutdown");

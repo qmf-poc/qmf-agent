@@ -1,29 +1,64 @@
 package qmf.poc.agent
 
-import qmf.poc.agent.vth.VirtualThreadExecutionContext
+import org.slf4j.LoggerFactory
+import qmf.poc.agent.transport.{Alive, IncomingMessage, OutgoingMessage, SplitQueue}
 
-import scala.concurrent.duration.{Duration, DurationInt}
+import java.util.concurrent.{ExecutorService, Executors, StructuredTaskScope, ThreadFactory}
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Promise}
-import qmf.poc.agent.transport.ws.{Alive, Broker, BrokerLive, Ping, RequestSnapshot, Snapshot, websocketClient}
 
-given ec: ExecutionContext = VirtualThreadExecutionContext()
+val serviceURL = "ws://localhost:8081/agent"
+// "ws://qmfpoc.s4y.solutions:8081/agent"
 
 @main def main(): Unit =
-  val broker = BrokerLive()
-  val ws = Await.result(websocketClient("ws://localhost:8081/agent", broker), 10.second)
-  // val ws = Await.result(websocketClient("ws://qmfpoc.s4y.solutions:8081/agent", broker), 10.second)
+  try
+    val logger = LoggerFactory.getLogger("main")
+    logger.info("Agent starting ...")
 
-  broker.put(Alive("poc agent"))
-  // broker.handle(RequestSnapshot("db2inst1", "password"))
+    val incomingQueue = new SplitQueue[IncomingMessage]
+    val outgoingQueue = new SplitQueue[OutgoingMessage]
 
-  val terminationPromise = Promise[Unit]()
-  Runtime.getRuntime.addShutdownHook(new Thread(new Runnable() {
-    def run(): Unit = {
-      println("SIGTERM received. Cleaning up...")
-      ws.close()
-      terminationPromise.trySuccess(())
-    }
-  }))
-  println("Agent started. Press Ctrl-C to exit...")
-  Await.result(terminationPromise.future, Duration.Inf)
-  println("Shutdown")
+    given ThreadFactory = Thread.ofVirtual().factory()
+    given ExecutorService = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory())
+    given ExecutionContext = ExecutionContext.fromExecutor(given_ExecutorService)
+
+    // val mainScope = new StructuredTaskScope.ShutdownOnFailure("mainScope", threadsFactory)
+    val mainScope = new StructuredTaskScope[Unit]("mainScope", given_ThreadFactory)
+
+    val taskBroker = mainScope.fork(() => {
+      runBroker(mainScope, incomingQueue, outgoingQueue)
+    })
+
+    val taskWebSocket = mainScope.fork(() => {
+      while (true) do
+        runWebsocketClient(incomingQueue, outgoingQueue, serviceURL)
+        val timeout = 2
+        logger.debug(s"WebSocket connection will retried ${timeout} sec")
+        Thread.sleep(timeout * 1000)
+        logger.debug(s"WebSocket connection is about to retried")
+    })
+
+    val terminationPromise = Promise[Unit]()
+    val shutdownPromise = Promise[Unit]()
+    Runtime.getRuntime.addShutdownHook(new Thread(new Runnable() {
+      def run(): Unit = {
+        logger.info("SIGTERM received.")
+        terminationPromise.success(())
+        Await.result(shutdownPromise.future, Duration.Inf)
+      }
+    }))
+
+    // logger.debug("send alive 2")
+    // outgoingQueue.put(Alive("poc agent2"))
+
+    logger.info("Agent started. Press Ctrl-C to exit...")
+    Await.result(terminationPromise.future, Duration.Inf)
+    logger.debug("Agent shutting down...")
+    mainScope.shutdown()
+    mainScope.join()
+    Thread.sleep(500)
+    logger.info("Agent shutdown.")
+    shutdownPromise.success(())
+  catch
+    case e: InterruptedException =>
+      println("Parent interrupted, should never happen...")

@@ -3,9 +3,6 @@ version := "0.1.0-SNAPSHOT"
 organization := "qmf.poc.service"
 organizationName := "qmf"
 
-val zioVersion = "2.1.14"
-val zioConfigVersion = "4.0.3"
-val zioHttpVersion = "3.0.1"
 val luceneVersion = "10.1.0"
 
 lazy val root = project
@@ -14,8 +11,12 @@ lazy val root = project
     name := "agent",
     assembly / mainClass := Some("qmf.poc.agent.main"),
     libraryDependencies ++= Seq(
-      "io.spray" %%  "spray-json" % "1.3.6",
+      "io.spray" %% "spray-json" % "1.3.6",
       "com.ibm.db2" % "jcc" % "12.1.0.0",
-      "org.scalameta" %% "munit" % "1.0.4" % Test
+      "org.slf4j" % "slf4j-api" % "2.0.17",
+      "ch.qos.logback" % "logback-classic" % "1.5.17",
+      // "org.slf4j" % "slf4j-simple" % "2.0.17", - does not work with virtual threads
+      "org.scalameta" %% "munit" % "1.1.0" % Test
     )
   )
+unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "resources"

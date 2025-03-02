@@ -1,5 +1,6 @@
 package qmf.poc.agent.catalog
 
+import org.slf4j.LoggerFactory
 import qmf.poc.agent.catalog.models.{Catalog, ObjectData, ObjectDirectory, ObjectRemarks}
 
 import java.sql.Statement
@@ -7,19 +8,20 @@ import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 import scala.util.Using
 
-class CatalogProvider(connectionPool: ConnectionPool){
+class CatalogProvider(connectionPool: ConnectionPool) {
 
   def catalog: Option[Catalog] =
     import CatalogProvider.*
-    
+
     val connection = connectionPool.connection match
       case Some(c) => c
-      case _ => return None
-    
+      case _       => return None
+
     val directories = new ArrayBuffer[ObjectDirectory]()
     val remarks = new ArrayBuffer[ObjectRemarks]()
     val data = new ArrayBuffer[ObjectData]()
 
+    logger.debug("Getting ObjectDirectory")
     Using.Manager { use =>
       val stmt = use(connection.createStatement)
       val rs = use(stmt.executeQuery(queryDirectory))
@@ -34,9 +36,21 @@ class CatalogProvider(connectionPool: ConnectionPool){
         val created = rs.getString("CREATED")
         val modified = rs.getString("MODIFIED")
         val lastUsed = rs.getString("LAST_USED")
-        directories += (new ObjectDirectory(owner, name, `type`, subtype, objectlevel, restricted, model, created, modified, lastUsed))
+        directories += (new ObjectDirectory(
+          owner,
+          name,
+          `type`,
+          subtype,
+          objectlevel,
+          restricted,
+          model,
+          created,
+          modified,
+          lastUsed
+        ))
     }.get
 
+    logger.debug("Getting ObjectRemarks")
     Using.Manager { use =>
       val stmt = use(connection.createStatement)
       val rs = use(stmt.executeQuery(CatalogProvider.queryRemarks))
@@ -48,6 +62,7 @@ class CatalogProvider(connectionPool: ConnectionPool){
         remarks += new ObjectRemarks(owner, name, `type`, rem)
     }.get
 
+    logger.debug("Getting ObjectData")
     try {
       Using.Manager { use =>
         val stmt = use(connection.createStatement)
@@ -61,12 +76,11 @@ class CatalogProvider(connectionPool: ConnectionPool){
           val bytes = rs.getBytes("CONCATENATED_APPLDATA")
           data += ObjectData(owner, name, `type`, 1, bytes)
       }.get
-    }catch
-      case e: Exception => println(e)
+    } catch case e: Exception => println(e)
 
+    logger.debug("Construct catalog")
     Some(Catalog(data.toSeq, remarks.toSeq, directories.toSeq))
   end catalog
-
 
   /** {@inheritDoc } */
   def close(): Unit = {
@@ -75,6 +89,7 @@ class CatalogProvider(connectionPool: ConnectionPool){
 }
 
 object CatalogProvider {
+  private val logger = LoggerFactory.getLogger("catalog")
   // TODO: hardcoded schema
   private val queryDirectory = "SELECT * FROM Q.OBJECT_DIRECTORY"
   private val queryRemarks = "SELECT * FROM Q.OBJECT_REMARKS"
@@ -88,7 +103,7 @@ object CatalogProvider {
                             |GROUP BY
                             |  OWNER, NAME, "TYPE"""".stripMargin
 
-    ///"SELECT * FROM Q.OBJECT_DATA"
-  
+  /// "SELECT * FROM Q.OBJECT_DATA"
+
   def apply(connectionPool: ConnectionPool) = new CatalogProvider(connectionPool)
 }
