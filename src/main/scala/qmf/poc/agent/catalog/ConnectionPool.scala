@@ -56,8 +56,10 @@ class ConnectionPool(val db2cs: String, val db2user: String, val db2password: St
  */
 object ConnectionPool:
   private var previousOption: Option[ConnectionPool] = None
-  private val db2cs = "jdbc:db2://qmfpoc.s4y.solutions:50000/sample"
   private val logger = LoggerFactory.getLogger("cp")
+
+  val db2cs: String =
+    Option(System.getProperty("agent.db2cs")).getOrElse("jdbc:db2://qmfpoc.s4y.solutions:50000/sample")
 
   def memo(db2user: String, db2password: String): ConnectionPool =
     previousOption match
