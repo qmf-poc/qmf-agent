@@ -3,7 +3,6 @@ package qmf.poc.agent.catalog
 import org.slf4j.LoggerFactory
 import qmf.poc.agent.catalog.models.{Catalog, ObjectData, ObjectDirectory, ObjectRemarks}
 
-import java.sql.Statement
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
 import scala.util.Using

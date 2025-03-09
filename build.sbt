@@ -1,4 +1,4 @@
-scalaVersion := "3.6.3"
+scalaVersion := "3.6.4"
 version := "0.1.0-SNAPSHOT"
 organization := "qmf.poc.service"
 organizationName := "qmf"
