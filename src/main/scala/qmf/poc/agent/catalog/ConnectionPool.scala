@@ -44,7 +44,7 @@ class ConnectionPool(val db2cs: String, val db2user: String, val db2password: St
     connectionOpt match
       case Some(c) => isConnectionValid(c)
       case None    => false
-/*
+
   def test(): Boolean =
     try
       connection
@@ -53,7 +53,7 @@ class ConnectionPool(val db2cs: String, val db2user: String, val db2password: St
       case e =>
         println(e)
         false
- */
+
 object ConnectionPool:
   private var previousOption: Option[ConnectionPool] = None
   private val logger = LoggerFactory.getLogger("cp")

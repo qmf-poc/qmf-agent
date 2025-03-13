@@ -25,3 +25,6 @@ ThisBuild / assemblyMergeStrategy := {
   case PathList("module-info.class") => MergeStrategy.first
   case x                             => (ThisBuild / assemblyMergeStrategy).value(x)
 }
+
+Compile / unmanagedJars += file("lib/QMFLib.jar")
+Compile / unmanagedJars += file("lib/js.jar")

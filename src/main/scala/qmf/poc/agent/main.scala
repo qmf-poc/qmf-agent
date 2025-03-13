@@ -7,6 +7,7 @@ import qmf.poc.agent.transport.{Alive, IncomingMessage, OutgoingMessage, SplitQu
 import java.util.concurrent.{ExecutorService, Executors, StructuredTaskScope, ThreadFactory}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Promise}
+import com.ibm.qmf.api.{QMF, QMFException, Query, QueryResults, Session, SaveResultsToFileOptions}
 
 // "ws://qmfpoc.s4y.solutions:8081/agent"
 
@@ -32,10 +33,10 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
     })
 
     val taskWebSocket = mainScope.fork(() => {
-      while (true) do
+      while true do
         WebSocketClient.run(incomingQueue, outgoingQueue)
         val timeout = 2
-        logger.debug(s"WebSocket connection will retried ${timeout} sec")
+        logger.debug(s"WebSocket connection will retried $timeout sec")
         Thread.sleep(timeout * 1000)
         logger.debug(s"WebSocket connection is about to retried")
     })
