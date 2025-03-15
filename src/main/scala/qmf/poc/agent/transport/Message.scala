@@ -7,14 +7,18 @@ import spray.json.given
 trait OutgoingMessage:
   val jsonrpc: String
 
-case class Ping(payload: String) extends OutgoingMessage:
-  val jsonrpc: String =  s"""{"jsonrpc": "2.0", "method": "ping", "params" : "$payload"}"""
-
+case class Pong(id: Int, payload: String) extends OutgoingMessage:
+  val jsonrpc: String = s"""{"jsonrpc": "2.0", "id": $id,"result": "$payload"}"""
+case class Snapshot(id: Int, catalog: Catalog) extends OutgoingMessage:
+  val jsonrpc: String = s"""{"jsonrpc": "2.0", "id": $id, "result": ${catalog.toJson}}"""
 case class Alive(agent: String) extends OutgoingMessage:
   val jsonrpc: String = s"""{"jsonrpc": "2.0", "method": "alive", "params" : "$agent"}"""
-
-case class Snapshot(agent: String, catalog: Catalog) extends OutgoingMessage:
-  val jsonrpc: String =  s"""{"jsonrpc": "2.0", "method": "snapshot", "params": ${catalog.toJson}}"""
+case class ResponseObjectRun(id: Int, owner: String, name: String, body: String, format: String) extends OutgoingMessage:
+  val jsonrpc: String =
+    s"""{"jsonrpc": "2.0", "id": $id, "result": {"owner": "$owner", "name": "$name", "body": ${body.toJson}, "format": "$format"}}"""
+case class ErrorObjectRun(id: Int, owner: String, name: String, format: String, code: Int, message: String) extends OutgoingMessage:
+  val jsonrpc: String =
+    s"""{"jsonrpc": "2.0", "id": $id, "error": {"code": $code, "message": "$message", "data": {"owner": "$owner", "name": "$name", "format": "$format"}}}"""
 
 case class Close(agent: String, code: Int, reason: String) extends OutgoingMessage:
   val jsonrpc: String = s"""{"jsonrpc": "2.0", "method": "close", "params": {"code": $code, "reason": "$reason"}}"""
@@ -22,6 +26,7 @@ case class Close(agent: String, code: Int, reason: String) extends OutgoingMessa
 trait IncomingMessage
 
 case class ServiceReady(service: String) extends IncomingMessage
-case class Pong(payload: String) extends IncomingMessage
-case class RequestSnapshot(user: String, password: String) extends IncomingMessage
-  
+case class Ping(id: Int, payload: String) extends IncomingMessage
+case class RequestSnapshot(id: Int, user: String, password: String) extends IncomingMessage
+case class RequestRunObject(id: Int, user: String, password: String, owner: String, name: String, format: String)
+    extends IncomingMessage

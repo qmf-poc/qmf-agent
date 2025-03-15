@@ -1,7 +1,9 @@
 package qmf.poc.agent
 
+import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
 import qmf.poc.agent.catalog.{CatalogProvider, ConnectionPool}
+import qmf.poc.agent.runner.QMFObjectRunner
 import qmf.poc.agent.transport.*
 
 import java.util.concurrent.StructuredTaskScope
@@ -15,7 +17,7 @@ object Broker:
   ): Unit =
     val logger = LoggerFactory.getLogger("broker")
     logger.debug("Enter broker loop")
-    while (!Thread.currentThread().isInterrupted) do
+    while !Thread.currentThread().isInterrupted do
       try
         logger.debug(s"wait for incoming message queue")
         val incoming = incomingQueue.take
@@ -26,15 +28,29 @@ object Broker:
               logger.info(s"""Service $"service" connected, send alive notification""")
               outgoingQueue.put(Alive("poc agent"))
             })
-          case Pong(payload) => logger.info(s"Got Pong($payload) from service")
-          case RequestSnapshot(user, password) =>
+          case Ping(id, payload) =>
             scope.fork[Unit](() =>
+              logger.info(s"Got Ping(id=$id, payload=$payload) from service")
+              outgoingQueue.put(Pong(id, payload))
+            )
+          case RequestSnapshot(id, user, password) =>
+            scope.fork[Unit](() =>
+              logger.warn("RequestSnapshot")
               Using(ConnectionPool.memo(user, password)) { connectionPool =>
                 CatalogProvider(connectionPool).catalog match
-                  case Some(catalog) => outgoingQueue.put(Snapshot("poc agent", catalog)) // TODO: return agent's ID
-                  case _             => logger.warn("No DB connection") // TODO: notify service?
+                  case Some(catalog) => outgoingQueue.put(Snapshot(id, catalog)) // TODO: return agent's ID
+                  case e             => logger.warn("No DB connection") // TODO: notify service?
               }
             )
+          case RequestRunObject(id, user, password, owner, name, format) =>
+            scope.fork[Unit] { () =>
+              logger.warn("RequestRunObject")
+              QMFObjectRunner.retrieveObjectHTML(user, password, owner, name, format) match
+                case Success(body) => outgoingQueue.put(ResponseObjectRun(id, owner, name, body, format))
+                case Failure(exception) =>
+                  logger.warn(exception.getMessage, exception)
+                  outgoingQueue.put(ErrorObjectRun(id, owner, name, format, -1, exception.getMessage))
+            }
       catch
         case _: InterruptedException =>
           logger.warn("Interrupted")

@@ -4,7 +4,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import qmf.poc.agent
 import qmf.poc.agent.transport.*
 import spray.json.JsonParser.ParsingException
-import spray.json.{JsObject, JsString, given}
+import spray.json.{JsObject, JsString, JsNumber, given}
 
 import java.net.URI
 import java.net.http.{HttpClient, WebSocket}
@@ -34,15 +34,30 @@ object WebSocketClient:
           logger.debug(s"<== $frame")
           val websocketMessage = frame.toString
           try
-            val seq = websocketMessage.parseJson.asJsObject.getFields("method", "params")
+            val seq = websocketMessage.parseJson.asJsObject.getFields("method", "params", "id")
             seq match
-              case Seq(JsString("pong"), JsString(payload)) => incomingQueue.put(Pong(payload))
-              case Seq(JsString("requestSnapshot"), JsObject(params)) =>
+              case Seq(JsString("ping"), JsObject(params), JsNumber(id)) =>
+                params.toSeq match
+                  case Seq(("payload", JsString(payload))) =>
+                    incomingQueue.put(Ping(id.toInt, payload))
+                  case _ => handleError(frame, Exception(s"no payload in params : $params"))
+              case Seq(JsString("snapshot"), JsObject(params), JsNumber(id)) =>
                 params.toSeq match
                   case Seq(("password", JsString(password)), ("user", JsString(user))) =>
-                    incomingQueue.put(RequestSnapshot(user, password))
-                  case _ => handleError(frame, Exception("Unknown method and/or params type"))
-              case _ => handleError(frame, Exception("Unknown method and/or params type"))
+                    incomingQueue.put(RequestSnapshot(id.toInt, user, password))
+                  case _ => handleError(frame, Exception(s"Unknown method and/or params type in: $websocketMessage"))
+              case Seq(JsString("run"), JsObject(params), JsNumber(id)) =>
+                params.toSeq match
+                  case Seq(
+                        ("format", JsString(format)),
+                        ("name", JsString(name)),
+                        ("owner", JsString(owner)),
+                        ("password", JsString(password)),
+                        ("user", JsString(user))
+                      ) =>
+                    incomingQueue.put(RequestRunObject(id.toInt, user, password, owner, name, format))
+                  case l => handleError(frame, Exception(s"Unknown run params type in: $websocketMessage/$l"))
+              case _ => handleError(frame, Exception(s"Unknown method in: $websocketMessage"))
           catch case e: ParsingException => handleError(frame, e)
           super.onText(webSocket, frame, last)
         }
