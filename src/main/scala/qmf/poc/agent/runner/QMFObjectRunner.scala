@@ -54,6 +54,8 @@ object QMFObjectRunner:
         } finally {
           Files.deleteIfExists(tempFile)
         }
+      case null =>
+        throw Exception(s"object (owner=$owner, name=$name) not found")
       case other =>
         throw Exception(s"Unsupported object type $other")
     }
