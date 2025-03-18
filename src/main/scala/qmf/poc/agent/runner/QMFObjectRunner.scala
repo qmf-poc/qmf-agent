@@ -9,7 +9,7 @@ import scala.util.Try
 
 object QMFObjectRunner:
   val db2cs: String =
-    Option(System.getProperty("agent.db2cs")).getOrElse("jdbc:db2://qmfpoc.s4y.solutions:50000/sample")
+    Option(System.getProperty("agent.db2cs")).getOrElse("jdbc:db2://qmfdb2.s4y.solutions:50000/sample")
 
   private val qmfFolder: String =
     Option(System.getProperty("qmf.folder")).getOrElse(

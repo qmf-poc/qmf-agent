@@ -2,14 +2,11 @@ package qmf.poc.agent
 
 import org.slf4j.LoggerFactory
 import qmf.poc.agent.catalog.ConnectionPool
-import qmf.poc.agent.transport.{Alive, IncomingMessage, OutgoingMessage, SplitQueue}
+import qmf.poc.agent.transport.{IncomingMessage, OutgoingMessage, SplitQueue}
 
 import java.util.concurrent.{ExecutorService, Executors, StructuredTaskScope, ThreadFactory}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Promise}
-import com.ibm.qmf.api.{QMF, QMFException, Query, QueryResults, Session, SaveResultsToFileOptions}
-
-// "ws://qmfpoc.s4y.solutions:8081/agent"
 
 @main def main(): Unit =
   try
