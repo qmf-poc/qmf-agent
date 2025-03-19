@@ -18,7 +18,7 @@ case class ResponseObjectRun(id: Int, owner: String, name: String, body: String,
     s"""{"jsonrpc": "2.0", "id": $id, "result": {"owner": "$owner", "name": "$name", "body": ${body.toJson}, "format": "$format"}}"""
 case class ErrorObjectRun(id: Int, owner: String, name: String, format: String, code: Int, message: String) extends OutgoingMessage:
   val jsonrpc: String =
-    s"""{"jsonrpc": "2.0", "id": $id, "error": {"code": $code, "message": "$message", "data": {"owner": "$owner", "name": "$name", "format": "$format"}}}"""
+    s"""{"jsonrpc": "2.0", "id": $id, "error": {"code": $code, "message": ${message.toJson}, "data": {"owner": "$owner", "name": "$name", "format": "$format"}}}"""
 
 case class Close(agent: String, code: Int, reason: String) extends OutgoingMessage:
   val jsonrpc: String = s"""{"jsonrpc": "2.0", "method": "close", "params": {"code": $code, "reason": "$reason"}}"""
