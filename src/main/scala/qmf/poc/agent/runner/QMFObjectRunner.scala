@@ -25,7 +25,7 @@ object QMFObjectRunner:
     // `/Users/dsa/Application Data/IBM/QMF for WebSphere`
 
   private val qmfConnection: String =
-    Option(System.getProperty("qmf.connection")).getOrElse("Connection to Test1")
+    Option(System.getProperty("qmf.connection")).getOrElse("Connection to Test 1")
 
   private val qmfUser: String =
     Option(System.getProperty("qmf.user")).getOrElse("admin")
