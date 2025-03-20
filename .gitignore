@@ -31,3 +31,5 @@ metals.sbt
 .idea_modules
 /.worksheet/
 lib
+
+Debug_Log_*.txt

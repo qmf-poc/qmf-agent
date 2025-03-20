@@ -35,7 +35,7 @@ object Broker:
             )
           case RequestSnapshot(id, user, password) =>
             scope.fork[Unit](() =>
-              logger.warn("RequestSnapshot")
+              logger.info("RequestSnapshot")
               Using(ConnectionPool.memo(user, password)) { connectionPool =>
                 CatalogProvider(connectionPool).catalog match
                   case Some(catalog) => outgoingQueue.put(Snapshot(id, catalog)) // TODO: return agent's ID
@@ -44,12 +44,14 @@ object Broker:
             )
           case RequestRunObject(id, user, password, owner, name, format) =>
             scope.fork[Unit] { () =>
-              logger.warn("RequestRunObject")
+              logger.info("RequestRunObject")
               QMFObjectRunner.retrieveObjectHTML(user, password, owner, name, format) match
                 case Success(body) => outgoingQueue.put(ResponseObjectRun(id, owner, name, body, format))
                 case Failure(exception) =>
                   logger.warn(exception.getMessage, exception)
                   outgoingQueue.put(ErrorObjectRun(id, owner, name, format, -1, exception.getMessage))
+                case null => logger.warn("This NEVER should happen")
+              logger.debug("RequestRunObject done")
             }
       catch
         case _: InterruptedException =>
