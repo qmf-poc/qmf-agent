@@ -28,3 +28,6 @@ ThisBuild / assemblyMergeStrategy := {
 
 Compile / unmanagedJars += file("lib/QMFLib.jar")
 Compile / unmanagedJars += file("lib/js.jar")
+
+ThisBuild / javacOptions ++= Seq("--release", "21")
+ThisBuild / scalacOptions ++= Seq("-java-output-version", "21")
