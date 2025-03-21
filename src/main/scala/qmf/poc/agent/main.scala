@@ -35,11 +35,13 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
 
     val taskWebSocket = given_ExecutorService.submit(new Runnable {
       def run(): Unit = {
-        while true do WebSocketClient.run(incomingQueue, outgoingQueue)
-        val timeout = 2
-        logger.debug(s"WebSocket connection will retried $timeout sec")
-        Thread.sleep(timeout * 1000)
-        logger.debug(s"WebSocket connection is about to retried")
+        while true do {
+          WebSocketClient.run(incomingQueue, outgoingQueue)
+          val timeout = 2
+          logger.debug(s"WebSocket connection will retried $timeout sec")
+          Thread.sleep(timeout * 1000)
+          logger.debug(s"WebSocket connection is about to retried")
+        }
       }
     })
     // taskWebSocket.start()

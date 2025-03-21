@@ -150,7 +150,7 @@ object WebSocketClient:
       case e: Exception            => logger.warn("Connection error", e)
     finally
       logger.info("HTTP Client shut down")
-      // httpClient.shutdown()
+      // httpClient. .shutdown()
       logger.debug("Websocket scope shutting down...")
       // scope.shutdown()
       // scope.join()
