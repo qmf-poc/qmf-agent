@@ -21,21 +21,28 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
     given ThreadFactory = Thread.ofVirtual().factory()
     given ExecutorService = Executors.newThreadPerTaskExecutor(given_ThreadFactory) // Thread.ofVirtual().factory())
     given ExecutionContext = ExecutionContext.fromExecutor(given_ExecutorService)
-
-    // val mainScope = new StructuredTaskScope.ShutdownOnFailure("mainScope", threadsFactory)
-    val mainScope = new StructuredTaskScope[Unit]("mainScope", given_ThreadFactory)
+    val mainScope = new StructuredTaskScope[ScopeResult]("mainScope", given_ThreadFactory)
 
     val taskBroker = mainScope.fork(() => {
+      logger.debug("Broker thread started")
       Broker.run(mainScope, incomingQueue, outgoingQueue)
+      logger.debug("Broker thread exit")
+      ScopeResult.Ok
     })
 
     val taskWebSocket = mainScope.fork(() => {
-      while true do
-        WebSocketClient.run(incomingQueue, outgoingQueue)
-        val timeout = 2
-        logger.debug(s"WebSocket connection will retried $timeout sec")
-        Thread.sleep(timeout * 1000)
-        logger.debug(s"WebSocket connection is about to retried")
+      logger.debug("WebSocketClient thread started")
+      while !Thread.currentThread().isInterrupted do
+        WebSocketClient.run(mainScope, incomingQueue, outgoingQueue)
+        if Thread.currentThread().isInterrupted then
+          logger.info("WebSocketClient thread interrupted")
+        else
+          val timeout = 2
+          logger.debug(s"WebSocket connection will retried $timeout sec")
+          Thread.sleep(timeout * 1000)
+          logger.debug(s"WebSocket connection is about to retried")
+      logger.debug("WebSocketClient thread exit")
+      ScopeResult.Ok
     })
 
     val terminationPromise = Promise[Unit]()
@@ -56,7 +63,7 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
     logger.debug("Agent shutting down...")
     mainScope.shutdown()
     mainScope.join()
-    Thread.sleep(500)
+    Thread.sleep(1500)
     logger.info("Agent shutdown.")
     shutdownPromise.success(())
   catch

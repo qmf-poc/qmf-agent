@@ -2,9 +2,10 @@ package qmf.poc.agent
 
 import org.slf4j.{Logger, LoggerFactory}
 import qmf.poc.agent
+import qmf.poc.agent.catalog.{CatalogProvider, ConnectionPool}
 import qmf.poc.agent.transport.*
 import spray.json.JsonParser.ParsingException
-import spray.json.{JsObject, JsString, JsNumber, given}
+import spray.json.{JsNumber, JsObject, JsString, given}
 
 import java.net.URI
 import java.net.http.{HttpClient, WebSocket}
@@ -13,6 +14,7 @@ import java.util.concurrent.{CompletionStage, ExecutorService, StructuredTaskSco
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.jdk.FutureConverters.given
+import scala.util.Using
 
 object WebSocketClient:
   val serviceURL = Option(System.getProperty("agent.service.ws.uri")).getOrElse("ws://localhost:8081/agent")
@@ -102,11 +104,6 @@ object WebSocketClient:
           logger.warn(s""""$frame"""", exception)
     )
 
-  enum WebSocketResult:
-    case Error
-    case PeerClosed
-    case Interrupted
-
   private def getHttpClient(logger: Logger)(using es: ExecutorService): HttpClient =
     logger.debug("HTTP Client creating...")
     val client: HttpClient = HttpClient
@@ -130,7 +127,8 @@ object WebSocketClient:
       logger: Logger,
       webSocket: WebSocket,
       outgoingQueue: ReadOnlyQueue[OutgoingMessage]
-  ): WebSocketResult =
+  ): ScopeResult =
+    logger.debug("outgoingQueueLoop enter")
     while !Thread.currentThread().isInterrupted do
       try
         logger.debug("wait for outgoing message queue")
@@ -146,33 +144,39 @@ object WebSocketClient:
           Thread.currentThread().interrupt() // Preserve interrupt status
         case e: Exception =>
           logger.warn(s"Unexpected error while processing message: ${e.getMessage}", e)
-    WebSocketResult.Interrupted
+    logger.debug("outgoingQueueLoop exit")
+    ScopeResult.Interrupted
 
   def run(
+      scope: StructuredTaskScope[ScopeResult],
       incomingQueue: WriteOnlyQueue[IncomingMessage],
       outgoingQueue: ReadOnlyQueue[OutgoingMessage]
   )(using ec: ExecutionContext, es: ExecutorService, tf: ThreadFactory): Unit =
     val logger = LoggerFactory.getLogger("ws")
 
+    logger.debug("run enter");
+
+    logger.debug("getHttpClient...")
     val httpClient = getHttpClient(logger)
-    val scope = new StructuredTaskScope("websocket", tf)
 
     val (completionFuture, listener) = makeWebsocketListener(logger, incomingQueue)
-    try
+    try {
       val webSocket = getWebSocket(logger, listener, httpClient, serviceURL)
-      try
-        scope.fork(() => {
+      try {
+        val loopScope = scope.fork(() => {
           outgoingQueueLoop(logger, webSocket, outgoingQueue)
         })
         Await.ready(completionFuture, Duration.Inf)
-      finally webSocket.sendClose(0, "Exit")
-    catch
-      case _: InterruptedException => logger.debug("Interrupted")
-      case e: Exception            => logger.warn("Connection error", e)
+      } finally {
+        logger.debug("send close to peer")
+        webSocket.sendClose(0, "Exit")
+      }
+    } catch
+      case _: InterruptedException =>
+        logger.debug("Interrupted")
+        Thread.currentThread().interrupt()
+      case e: Exception => logger.warn("Connection error", e)
     finally
-      logger.info("HTTP Client shut down")
+      logger.info("HTTP Client shutdown")
       httpClient.shutdown()
-      logger.debug("Websocket scope shutting down...")
-      scope.shutdown()
-      scope.join()
-      logger.debug("Websocket scope shutdown");
+      logger.debug("run exit");

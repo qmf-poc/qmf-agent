@@ -11,10 +11,10 @@ import scala.util.Using
 
 object Broker:
   def run(
-      scope: StructuredTaskScope[Unit],
+      scope: StructuredTaskScope[ScopeResult],
       incomingQueue: ReadOnlyQueue[IncomingMessage],
       outgoingQueue: WriteOnlyQueue[OutgoingMessage]
-  ): Unit =
+  ): ScopeResult =
     val logger = LoggerFactory.getLogger("broker")
     logger.debug("Enter broker loop")
     while !Thread.currentThread().isInterrupted do {
@@ -88,3 +88,5 @@ object Broker:
           logger.warn(s"Unexpected null")
     }
     logger.info("Broker exit.")
+    if Thread.currentThread().isInterrupted then ScopeResult.Interrupted
+    else ScopeResult.Ok
