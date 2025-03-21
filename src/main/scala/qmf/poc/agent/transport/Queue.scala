@@ -15,7 +15,7 @@ trait WriteOnlyQueue[E]:
   def size: Int
 
 class SplitQueue[E]() extends ReadOnlyQueue[E] with WriteOnlyQueue[E]:
-  private val queue = LinkedBlockingQueue[E](1)
+  private val queue = LinkedBlockingQueue[E](64)
   private val logger = LoggerFactory.getLogger("q")
 
   def take: E = {
