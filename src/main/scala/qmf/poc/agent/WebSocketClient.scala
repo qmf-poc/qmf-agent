@@ -44,7 +44,30 @@ object WebSocketClient:
               case Seq(JsString("snapshot"), JsObject(params), JsNumber(id)) =>
                 params.toSeq match
                   case Seq(("password", JsString(password)), ("user", JsString(user))) =>
+                    /*
                     incomingQueue.put(RequestSnapshot(id.toInt, user, password))
+                     */
+
+                    val qmfUser: String =
+                      Option(System.getProperty("qmf.user")).getOrElse(user)
+
+                    val qmfPassword: String =
+                      Option(System.getProperty("qmf.password")).getOrElse(password)
+                    Using(ConnectionPool.memo(qmfUser, qmfPassword)) { connectionPool =>
+                      {
+                        val catalog = CatalogProvider(connectionPool).catalog
+                        catalog match
+                          case Some(catalog) =>
+                            val message = Snapshot(id.toInt, catalog)
+                            logger.debug(s"==> $message, serializing...")
+                            val serialized = message.jsonrpc
+                            logger.debug(s"Sending serialized ${serialized.substring(0, math.min(serialized.length, 250))}...")
+                            webSocket.sendText(serialized, true)
+                            logger.debug(s"Sent")
+                          case e => logger.warn("No DB connection") // TODO: notify service?
+                      }
+                    }
+
                   case _ => handleError(frame, Exception(s"Unknown method and/or params type in: $websocketMessage"))
               case Seq(JsString("run"), JsObject(params), JsNumber(id)) =>
                 params.toSeq match
