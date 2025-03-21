@@ -45,11 +45,10 @@ object Broker:
                   {
                     val catalog = CatalogProvider(connectionPool).catalog
                     catalog match
-                      case Some(catalog) => {
+                      case Some(catalog) =>
                         logger.debug(s"Catalog put to queue ($outgoingQueue, size: ${outgoingQueue.size})...")
-                        outgoingQueue.put(Snapshot(id, catalog));
+                        outgoingQueue.put(Snapshot(id, catalog))
                         logger.debug(s"Catalog put to queue done ($outgoingQueue, size: ${outgoingQueue.size})")
-                      }
                       case e => logger.warn("No DB connection") // TODO: notify service?
                   }
                 }
