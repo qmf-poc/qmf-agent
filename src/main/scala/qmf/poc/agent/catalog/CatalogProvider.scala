@@ -35,7 +35,7 @@ class CatalogProvider(connectionPool: ConnectionPool) {
         val created = rs.getString("CREATED")
         val modified = rs.getString("MODIFIED")
         val lastUsed = rs.getString("LAST_USED")
-        directories += (new ObjectDirectory(
+        directories += new ObjectDirectory(
           owner,
           name,
           `type`,
@@ -46,7 +46,7 @@ class CatalogProvider(connectionPool: ConnectionPool) {
           created,
           modified,
           lastUsed
-        ))
+        )
     }.get
 
     logger.debug("Getting ObjectRemarks")
@@ -79,11 +79,12 @@ class CatalogProvider(connectionPool: ConnectionPool) {
 
     logger.debug("Construct catalog")
     val catalog = Some(Catalog(data.toSeq, remarks.toSeq, directories.toSeq))
-    logger.debug("Catalog constructed")
+    logger.debug(
+      s"Catalog constructed ${catalog.value.objectData.size}/${catalog.value.objectRemarks.size}/${catalog.value.objectDirectories.size}"
+    )
     catalog
   end catalog
 
-  /** {@inheritDoc } */
   def close(): Unit = {
     // TODO: log
   }

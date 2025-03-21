@@ -19,7 +19,7 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
     val outgoingQueue = new SplitQueue[OutgoingMessage]
 
     given ThreadFactory = Thread.ofVirtual().factory()
-    given ExecutorService = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory())
+    given ExecutorService = Executors.newThreadPerTaskExecutor(given_ThreadFactory) // Thread.ofVirtual().factory())
     given ExecutionContext = ExecutionContext.fromExecutor(given_ExecutorService)
 
     // val mainScope = new StructuredTaskScope.ShutdownOnFailure("mainScope", threadsFactory)
