@@ -112,8 +112,11 @@ object WebSocketClient:
       try
         logger.debug("wait for outgoing message queue")
         val message = outgoingQueue.take
-        logger.debug(s"==> $message")
-        webSocket.sendText(message.jsonrpc, true)
+        logger.debug(s"==> $message, serializing...")
+        val serialized = message.jsonrpc
+        logger.debug(s"Sending serialized ${serialized.substring(0, math.min(serialized.length, 250))}...")
+        webSocket.sendText(serialized, true)
+        logger.debug(s"Sent")
       catch
         case _: InterruptedException =>
           logger.warn("Outgoing messages listener interrupted")

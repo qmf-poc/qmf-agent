@@ -78,7 +78,9 @@ class CatalogProvider(connectionPool: ConnectionPool) {
     } catch case e: Exception => println(e)
 
     logger.debug("Construct catalog")
-    Some(Catalog(data.toSeq, remarks.toSeq, directories.toSeq))
+    val catalog = Some(Catalog(data.toSeq, remarks.toSeq, directories.toSeq))
+    logger.debug("Catalog constructed")
+    catalog
   end catalog
 
   /** {@inheritDoc } */
