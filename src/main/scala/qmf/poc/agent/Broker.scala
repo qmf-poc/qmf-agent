@@ -11,7 +11,7 @@ import scala.util.Using
 
 object Broker:
   def run(
-      scope: StructuredTaskScope[Unit],
+      // scope: StructuredTaskScope[Unit],
       incomingQueue: ReadOnlyQueue[IncomingMessage],
       outgoingQueue: WriteOnlyQueue[OutgoingMessage]
   ): Unit =

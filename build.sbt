@@ -1,5 +1,5 @@
 scalaVersion := "3.6.4"
-version := "0.1.0-SNAPSHOT"
+version := "0.2.0-SNAPSHOT"
 organization := "qmf.poc.service"
 organizationName := "qmf"
 
@@ -29,5 +29,5 @@ ThisBuild / assemblyMergeStrategy := {
 Compile / unmanagedJars += file("lib/QMFLib.jar")
 Compile / unmanagedJars += file("lib/js.jar")
 
-ThisBuild / javacOptions ++= Seq("--release", "21")
-ThisBuild / scalacOptions ++= Seq("-java-output-version", "21")
+ThisBuild / javacOptions ++= Seq("--release", "11")
+ThisBuild / scalacOptions ++= Seq("-java-output-version", "11")

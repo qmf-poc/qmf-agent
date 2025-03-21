@@ -132,14 +132,16 @@ object WebSocketClient:
     val logger = LoggerFactory.getLogger("ws")
 
     val httpClient = getHttpClient(logger)
-    val scope = new StructuredTaskScope("websocket", tf)
+    // val scope = new StructuredTaskScope("websocket", tf)
 
     val (completionFuture, listener) = makeWebsocketListener(logger, incomingQueue)
     try
       val webSocket = getWebSocket(logger, listener, httpClient, serviceURL)
       try
-        scope.fork(() => {
-          outgoingQueueLoop(logger, webSocket, outgoingQueue)
+        es.submit(new Runnable {
+          def run(): Unit = {
+            outgoingQueueLoop(logger, webSocket, outgoingQueue)
+          }
         })
         Await.ready(completionFuture, Duration.Inf)
       finally webSocket.sendClose(0, "Exit")
@@ -148,8 +150,8 @@ object WebSocketClient:
       case e: Exception            => logger.warn("Connection error", e)
     finally
       logger.info("HTTP Client shut down")
-      httpClient.shutdown()
+      // httpClient.shutdown()
       logger.debug("Websocket scope shutting down...")
-      scope.shutdown()
-      scope.join()
+      // scope.shutdown()
+      // scope.join()
       logger.debug("Websocket scope shutdown");
