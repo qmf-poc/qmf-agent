@@ -146,8 +146,10 @@ object WebSocketClient:
         Await.ready(completionFuture, Duration.Inf)
       finally webSocket.sendClose(0, "Exit")
     catch
-      case _: InterruptedException => logger.debug("Interrupted")
-      case e: Exception            => logger.warn("Connection error", e)
+      case _: InterruptedException =>
+        logger.debug("Interrupted")
+        Thread.currentThread().interrupt()
+      case e: Exception => logger.warn("Connection error", e)
     finally
       logger.info("HTTP Client shut down")
       // httpClient. .shutdown()

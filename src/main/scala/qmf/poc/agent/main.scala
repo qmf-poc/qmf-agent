@@ -20,16 +20,12 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
 
     given ThreadFactory = Executors.defaultThreadFactory() // Thread.ofVirtual().factory()
 
-    // given ExecutorService = Executors.newThreadPerTaskExecutor(given_ThreadFactory) // Thread.ofVirtual().factory())
     given ExecutorService = Executors.newFixedThreadPool(16)
     given ExecutionContext = ExecutionContext.global // ExecutionContext.fromExecutor(given_ExecutorService)
 
-    // val mainScope = new StructuredTaskScope.ShutdownOnFailure("mainScope", threadsFactory)
-    // val mainScope = new StructuredTaskScope[Unit]("mainScope", given_ThreadFactory)
-
     val taskBroker = given_ExecutorService.submit(new Runnable {
       def run(): Unit = {
-        Broker.run( /*mainScope, */ incomingQueue, outgoingQueue)
+        Broker.run(incomingQueue, outgoingQueue)
       }
     })
 
@@ -37,6 +33,11 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
       def run(): Unit = {
         while true do {
           WebSocketClient.run(incomingQueue, outgoingQueue)
+          val interrupted = Thread.interrupted()
+          if (interrupted) {
+            logger.info("WebSocket reconnection loop exit")
+            return
+          }
           val timeout = 2
           logger.debug(s"WebSocket connection will retried $timeout sec")
           Thread.sleep(timeout * 1000)
@@ -44,13 +45,14 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
         }
       }
     })
-    // taskWebSocket.start()
 
     val terminationPromise = Promise[Unit]()
     val shutdownPromise = Promise[Unit]()
     Runtime.getRuntime.addShutdownHook(new Thread(new Runnable() {
       def run(): Unit = {
         logger.info("SIGTERM received.")
+        taskBroker.cancel(true)
+        taskWebSocket.cancel(true)
         terminationPromise.success(())
         Await.result(shutdownPromise.future, Duration.Inf)
       }
@@ -62,6 +64,10 @@ import scala.concurrent.{Await, ExecutionContext, Promise}
     logger.info("Agent started. Press Ctrl-C to exit...")
     Await.result(terminationPromise.future, Duration.Inf)
     logger.debug("Agent shutting down...")
+    // taskBroker.get()
+    logger.info("Broker shutdown.")
+    // taskWebSocket.get()
+    logger.info("WebSocket shutdown.")
     // mainScope.shutdown()
     // mainScope.join()
     Thread.sleep(500)
