@@ -36,7 +36,12 @@ object Broker:
           case RequestSnapshot(id, user, password) =>
             scope.fork[Unit](() =>
               logger.info("RequestSnapshot")
-              Using(ConnectionPool.memo(user, password)) { connectionPool =>
+              val qmfUser: String =
+                Option(System.getProperty("qmf.user")).getOrElse(user)
+
+              val qmfPassword: String =
+                Option(System.getProperty("qmf.password")).getOrElse(password)
+              Using(ConnectionPool.memo(qmfUser, qmfPassword)) { connectionPool =>
                 CatalogProvider(connectionPool).catalog match
                   case Some(catalog) => outgoingQueue.put(Snapshot(id, catalog)) // TODO: return agent's ID
                   case e             => logger.warn("No DB connection") // TODO: notify service?
