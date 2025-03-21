@@ -17,7 +17,7 @@ object Broker:
   ): Unit =
     val logger = LoggerFactory.getLogger("broker")
     logger.debug("Enter broker loop")
-    while !Thread.currentThread().isInterrupted do
+    while !Thread.currentThread().isInterrupted do {
       try
         logger.debug(s"wait for incoming message queue")
         val incoming = incomingQueue.take
@@ -27,15 +27,17 @@ object Broker:
             scope.fork(() => {
               logger.info(s"""Service $"service" connected, send alive notification""")
               outgoingQueue.put(Alive("poc agent"))
+              logger.debug("Exit thread")
             })
           case Ping(id, payload) =>
-            scope.fork[Unit](() =>
+            scope.fork[Unit](() => {
               logger.info(s"Got Ping(id=$id, payload=$payload) from service")
               outgoingQueue.put(Pong(id, payload))
-            )
+              logger.debug("Exit thread")
+            })
           case RequestSnapshot(id, user, password) =>
-            scope.fork[Unit](() =>
-              logger.info("RequestSnapshot")
+            scope.fork[Unit](() => {
+              logger.info("Got RequestSnapshot")
               val qmfUser: String =
                 Option(System.getProperty("qmf.user")).getOrElse(user)
 
@@ -50,22 +52,24 @@ object Broker:
                     case e             => logger.warn("No DB connection") // TODO: notify service?
                 }
               }
-            )
+              logger.debug("Exit thread")
+            })
           case RequestRunObject(id, user, password, owner, name, format) =>
-            scope.fork[Unit] { () =>
-              logger.info("RequestRunObject")
+            scope.fork[Unit](() => {
+              logger.info("Got RequestRunObject")
               QMFObjectRunner.retrieveObjectHTML(user, password, owner, name, format) match
                 case Success(body) => outgoingQueue.put(ResponseObjectRun(id, owner, name, body, format))
                 case Failure(exception) =>
                   logger.warn(exception.getMessage, exception)
                   outgoingQueue.put(ErrorObjectRun(id, owner, name, format, -1, exception.getMessage))
                 case null => logger.warn("This NEVER should happen")
-              logger.debug("RequestRunObject done")
-            }
+              logger.debug("Exit thread")
+            })
       catch
         case _: InterruptedException =>
           logger.warn("Interrupted")
           Thread.currentThread().interrupt() // Preserve interrupt status
         case e: Exception =>
           logger.warn(s"Unexpected error while processing message: ${e.getMessage}", e)
+    }
     logger.info("Broker exit.")
