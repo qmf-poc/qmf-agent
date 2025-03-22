@@ -11,12 +11,12 @@ lazy val root = project
     name := "agent",
     assembly / mainClass := Some("qmf.poc.agent.main"),
     libraryDependencies ++= Seq(
-      "io.spray" %% "spray-json" % "1.3.6",
-      "com.ibm.db2" % "jcc" % "12.1.0.0",
-      "org.slf4j" % "slf4j-api" % "2.0.17",
-      "ch.qos.logback" % "logback-classic" % "1.5.17",
+      "io.spray" %% "spray-json" % "1.3.6", // json library
+      "com.ibm.db2" % "jcc" % "12.1.0.0", // db2 jdbc driver
+      "org.slf4j" % "slf4j-api" % "2.0.17", // logging
+      "ch.qos.logback" % "logback-classic" % "1.5.17", // logging
       // "org.slf4j" % "slf4j-simple" % "2.0.17", - does not work with virtual threads
-      "org.scalameta" %% "munit" % "1.1.0" % Test
+      "org.scalameta" %% "munit" % "1.1.0" % Test // testing
     )
   )
 //unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "resources"
