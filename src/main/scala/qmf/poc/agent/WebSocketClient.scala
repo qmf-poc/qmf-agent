@@ -46,9 +46,8 @@ object WebSocketClient:
               case Seq(JsString("snapshot"), JsObject(params), JsNumber(id)) =>
                 params.toSeq match
                   case Seq(("password", JsString(password)), ("user", JsString(user))) =>
-                    /*
                     incomingQueue.put(RequestSnapshot(id.toInt, user, password))
-                     */
+                    /*
 
                     val qmfUser: String =
                       Option(System.getProperty("qmf.user")).getOrElse(user)
@@ -58,8 +57,10 @@ object WebSocketClient:
                     Using(ConnectionPool.memo(qmfUser, qmfPassword)) { connectionPool =>
                       {
                         val catalog = CatalogProvider(connectionPool).catalog
+                        logger.debug(s"match $catalog")
                         catalog match
                           case Some(catalog) =>
+                            logger.debug(s"some(catalog) $catalog")
                             val message = Snapshot(id.toInt, catalog)
                             logger.debug(s"==> $message, serializing...")
                             val serialized = message.jsonrpc
@@ -68,7 +69,7 @@ object WebSocketClient:
                             logger.debug(s"Sent")
                           case e => logger.warn("No DB connection") // TODO: notify service?
                       }
-                    }
+                    }*/
 
                   case _ => handleError(frame, Exception(s"Unknown method and/or params type in: $websocketMessage"))
               case Seq(JsString("run"), JsObject(params), JsNumber(id)) =>
@@ -83,8 +84,14 @@ object WebSocketClient:
                     incomingQueue.put(RequestRunObject(id.toInt, user, password, owner, name, format))
                   case l => handleError(frame, Exception(s"Unknown run params type in: $websocketMessage/$l"))
               case _ => handleError(frame, Exception(s"Unknown method in: $websocketMessage"))
-          catch case e: ParsingException => handleError(frame, e)
-          super.onText(webSocket, frame, last)
+          catch
+            case e: ParsingException => handleError(frame, e)
+            case e: Throwable        => logger.warn(s"${e.getMessage}")
+            case e: Exception        => logger.warn(s"${e.getMessage}")
+            case e: Any              => logger.warn(s"$e")
+            case null                => logger.warn(s"null")
+          finally super.onText(webSocket, frame, last)
+          null
         }
 
         override def onClose(webSocket: WebSocket, statusCode: Int, reason: String): CompletionStage[?] = {
