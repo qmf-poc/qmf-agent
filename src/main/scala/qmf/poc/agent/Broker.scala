@@ -1,13 +1,11 @@
 package qmf.poc.agent
 
-import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
 import qmf.poc.agent.catalog.{CatalogProvider, ConnectionPool}
 import qmf.poc.agent.runner.QMFObjectRunner
 import qmf.poc.agent.transport.*
 
-import java.util.concurrent.StructuredTaskScope
-import scala.util.Using
+import scala.util.{Failure, Success, Using}
 
 object Broker:
   def run(

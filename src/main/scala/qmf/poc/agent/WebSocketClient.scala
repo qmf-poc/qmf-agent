@@ -2,17 +2,19 @@ package qmf.poc.agent
 
 import org.slf4j.{Logger, LoggerFactory}
 import qmf.poc.agent
+import qmf.poc.agent.catalog.{CatalogProvider, ConnectionPool}
 import qmf.poc.agent.transport.*
 import spray.json.JsonParser.ParsingException
-import spray.json.{JsObject, JsString, JsNumber, given}
+import spray.json.{JsNumber, JsObject, JsString, given}
 
 import java.net.URI
 import java.net.http.{HttpClient, WebSocket}
 import java.util
-import java.util.concurrent.{CompletionStage, ExecutorService, StructuredTaskScope, ThreadFactory}
+import java.util.concurrent.{CompletionStage, ExecutorService, ThreadFactory}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.jdk.FutureConverters.given
+import scala.util.Using
 
 object WebSocketClient:
   val serviceURL = Option(System.getProperty("agent.service.ws.uri")).getOrElse("ws://localhost:8081/agent")
@@ -44,7 +46,28 @@ object WebSocketClient:
               case Seq(JsString("snapshot"), JsObject(params), JsNumber(id)) =>
                 params.toSeq match
                   case Seq(("password", JsString(password)), ("user", JsString(user))) =>
-                    incomingQueue.put(RequestSnapshot(id.toInt, user, password))
+                    // incomingQueue.put(RequestSnapshot(id.toInt, user, password))
+                    val qmfUser: String =
+                      Option(System.getProperty("qmf.user")).getOrElse(user)
+
+                    val qmfPassword: String =
+                      Option(System.getProperty("qmf.password")).getOrElse(password)
+                    Using(ConnectionPool.memo(qmfUser, qmfPassword)) { connectionPool =>
+                      {
+                        val catalog = CatalogProvider(connectionPool).catalog
+                        logger.debug(s"match $catalog")
+                        catalog match
+                          case Some(catalog) =>
+                            logger.debug(s"some(catalog) $catalog")
+                            val message = Snapshot(id.toInt, catalog)
+                            logger.debug(s"==> $message, serializing...")
+                            val serialized = message.jsonrpc
+                            logger.debug(s"Sending serialized ${serialized.substring(0, math.min(serialized.length, 250))}...")
+                            webSocket.sendText(serialized, true)
+                            logger.debug(s"Sent")
+                          case e => logger.warn("No DB connection") // TODO: notify service?
+                      }
+                    }
                   case _ => handleError(frame, Exception(s"Unknown method and/or params type in: $websocketMessage"))
               case Seq(JsString("run"), JsObject(params), JsNumber(id)) =>
                 params.toSeq match
