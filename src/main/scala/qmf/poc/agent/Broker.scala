@@ -1,13 +1,12 @@
 package qmf.poc.agent
 
-import scala.util.{Success, Failure}
 import org.slf4j.LoggerFactory
 import qmf.poc.agent.catalog.{CatalogProvider, ConnectionPool}
 import qmf.poc.agent.runner.QMFObjectRunner
 import qmf.poc.agent.transport.*
 
 import java.util.concurrent.StructuredTaskScope
-import scala.util.Using
+import scala.util.{Failure, Success, Using}
 
 object Broker:
   def run(
@@ -39,15 +38,19 @@ object Broker:
 
               val qmfPassword: String =
                 Option(System.getProperty("qmf.password")).getOrElse(password)
-              Using(ConnectionPool.memo(qmfUser, qmfPassword)) { connectionPool =>
+
+              val qmfCharset: String =
+                Option(System.getProperty("qmf.charset")).getOrElse("UTF-8")
+
+              Using(ConnectionPool.memo(qmfUser, qmfPassword, qmfCharset)) { connectionPool =>
                 {
-                  val catalog = CatalogProvider(connectionPool).catalog
-                  catalog match
-                    case Some(catalog) =>
+                  CatalogProvider(connectionPool).catalog match
+                    case Success(catalog) =>
                       logger.debug(s"Catalog put to queue ($outgoingQueue, size: ${outgoingQueue.size})...")
                       outgoingQueue.put(Snapshot(id, catalog))
                       logger.debug(s"Catalog put to queue done ($outgoingQueue, size: ${outgoingQueue.size})")
-                    case e => logger.warn("No DB connection") // TODO: notify service?
+                    case Failure(error) =>
+                      outgoingQueue.put(ErrorSnapshot(id, 1, user, password, error.getMessage))
                 }
               }
             case RequestRunObject(id, user, password, owner, name, format) =>

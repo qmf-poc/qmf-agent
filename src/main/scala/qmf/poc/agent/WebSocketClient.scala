@@ -2,7 +2,6 @@ package qmf.poc.agent
 
 import org.slf4j.{Logger, LoggerFactory}
 import qmf.poc.agent
-import qmf.poc.agent.catalog.{CatalogProvider, ConnectionPool}
 import qmf.poc.agent.transport.*
 import spray.json.JsonParser.ParsingException
 import spray.json.{JsNumber, JsObject, JsString, given}
@@ -14,10 +13,9 @@ import java.util.concurrent.{CompletionStage, ExecutorService, StructuredTaskSco
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.jdk.FutureConverters.given
-import scala.util.Using
 
 object WebSocketClient:
-  val serviceURL = Option(System.getProperty("agent.service.ws.uri")).getOrElse("ws://localhost:8081/agent")
+  val serviceURL: String = Option(System.getProperty("agent.service.ws.uri")).getOrElse("ws://localhost:8081/agent")
 
   private def makeWebsocketListener(
       logger: Logger,
@@ -135,14 +133,16 @@ object WebSocketClient:
       webSocket: WebSocket,
       outgoingQueue: ReadOnlyQueue[OutgoingMessage]
   ): ScopeResult =
-    logger.debug("outgoingQueueLoop enter")
+    logger.debug(s"outgoingQueueLoop enter, websocket.output.close=${webSocket.isOutputClosed}")
     while !Thread.currentThread().isInterrupted do
       try
         logger.debug("wait for outgoing message queue")
         val message = outgoingQueue.take
         logger.debug(s"==> $message, serializing...")
         val serialized = message.jsonrpc
-        logger.debug(s"Sending serialized ${serialized.substring(0, math.min(serialized.length, 250))}...")
+        logger.debug(
+          s"Sending serialized ${serialized.substring(0, math.min(serialized.length, 250))}..., , websocket.output.close=${webSocket.isOutputClosed}"
+        )
         webSocket.sendText(serialized, true)
         logger.debug(s"Sent")
       catch

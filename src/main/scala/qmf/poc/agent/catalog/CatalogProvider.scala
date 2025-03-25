@@ -5,16 +5,14 @@ import qmf.poc.agent.catalog.models.{Catalog, ObjectData, ObjectDirectory, Objec
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.postfixOps
-import scala.util.Using
+import scala.util.{Try, Using}
 
 class CatalogProvider(connectionPool: ConnectionPool) {
 
-  def catalog: Option[Catalog] =
+  def catalog: Try[Catalog] = Try {
     import CatalogProvider.*
 
-    val connection = connectionPool.connection match
-      case Some(c) => c
-      case _       => return None
+    val connection = connectionPool.connection
 
     val directories = new ArrayBuffer[ObjectDirectory]()
     val remarks = new ArrayBuffer[ObjectRemarks]()
@@ -73,18 +71,17 @@ class CatalogProvider(connectionPool: ConnectionPool) {
           // val seq = rs.getShort("SEQ")
           // val bytes = rs.getBytes("APPLDATA")
           val bytes = rs.getBytes("CONCATENATED_APPLDATA")
-          data += ObjectData(owner, name, `type`, 1, bytes)
+          data += ObjectData(owner, name, `type`, 1, String(bytes, connectionPool.charset))
       }.get
     } catch case e: Exception => println(e)
 
     logger.debug("Construct catalog")
-    val catalog = Some(Catalog(data.toSeq, remarks.toSeq, directories.toSeq))
+    val result = Catalog(data.toSeq, remarks.toSeq, directories.toSeq)
     logger.debug(
-      s"Catalog constructed ${catalog.value.objectData.size}/${catalog.value.objectRemarks.size}/${catalog.value.objectDirectories.size}"
+      s"Catalog constructed ${result.objectData.size}/${result.objectRemarks.size}/${result.objectDirectories.size}"
     )
-    catalog
-  end catalog
-
+    result
+  }
   def close(): Unit = {
     // TODO: log
   }

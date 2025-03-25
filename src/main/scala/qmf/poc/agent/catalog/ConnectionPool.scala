@@ -2,9 +2,10 @@ package qmf.poc.agent.catalog
 
 import org.slf4j.LoggerFactory
 
+import java.nio.charset.Charset
 import java.sql.Connection
 
-class ConnectionPool(val db2cs: String, val db2user: String, val db2password: String) extends AutoCloseable:
+class ConnectionPool(val db2cs: String, val db2user: String, val db2password: String, val charset: Charset) extends AutoCloseable:
   private var connectionOpt: Option[Connection] = None
 
   override def close(): Unit =
@@ -16,29 +17,31 @@ class ConnectionPool(val db2cs: String, val db2user: String, val db2password: St
       case _       => ()
      */
 
-  private def updateConnection(): Option[Connection] =
-    try connectionOpt = Option(java.sql.DriverManager.getConnection(db2cs, db2user, db2password))
-    catch
-      case e =>
-        println(e)
-        connectionOpt = None
-    connectionOpt
+  private def updateConnection(): Connection = {
+    connectionOpt = None
+    val connection = java.sql.DriverManager.getConnection(db2cs, db2user, db2password)
+    connectionOpt = Some(connection)
+    connection
+  }
 
-  def connection: Option[Connection] =
-    connectionOpt.filter(c => isConnectionValid(c)).orElse(updateConnection())
+  def connection: Connection = {
+    connectionOpt match
+      case Some(c) =>
+        checkConnection(c)
+        c
+      case None => updateConnection()
+  }
 
   private def isConnectionValid(c: Connection): Boolean =
     c.isValid(1000)
-    /*
+
+  private def checkConnection(c: Connection): Unit =
+    val stmt = c.createStatement
     try
-      val stmt = c.createStatement
       val rs = stmt.executeQuery("SELECT 1 FROM SYSIBM.SYSDUMMY1")
-      rs.next && rs.getInt(1) == 1
-    catch
-      case e: Exception =>
-        println(e)
-        false
-     */
+      rs.next
+      rs.getInt(1)
+    finally stmt.close()
 
   def isValid: Boolean =
     connectionOpt match
@@ -61,7 +64,7 @@ object ConnectionPool:
   val db2cs: String =
     Option(System.getProperty("agent.db2cs")).getOrElse("jdbc:db2://qmfdb2.s4y.solutions:50000/sample")
 
-  def memo(db2user: String, db2password: String): ConnectionPool =
+  def memo(db2user: String, db2password: String, charsetName: String): ConnectionPool =
     previousOption match
       case Some(previous) =>
         logger.debug(
@@ -73,34 +76,37 @@ object ConnectionPool:
         else
           logger.debug(s"close previous connection ${previous.db2cs} for user ${previous.db2user}")
           previous.close()
-          logger.debug(s"create new connection $db2cs for user $db2user")
-          val connectionPool = new ConnectionPool(db2cs, db2user, db2password)
+          logger.debug(s"create new connection $db2cs for user $db2user, charset: $charsetName")
+          val charset = Charset.forName(charsetName)
+          val connectionPool = new ConnectionPool(db2cs, db2user, db2password, charset)
           previousOption = Some(connectionPool)
           connectionPool
       case None =>
-        logger.debug(s"create new connection $db2cs for user $db2user")
-        val connectionPool = new ConnectionPool(db2cs, db2user, db2password)
+        logger.debug(s"create new connection $db2cs for user $db2user, charset: $charsetName")
+        val charset = Charset.forName(charsetName)
+        val connectionPool = new ConnectionPool(db2cs, db2user, db2password, charset)
         previousOption = Some(connectionPool)
         connectionPool
-
-  def memo(db2cs: String, db2user: String, db2password: String): ConnectionPool =
+  def memo(db2cs: String, db2user: String, db2password: String, charset: Charset): ConnectionPool =
     previousOption match
       case Some(previous) =>
         if (previous.db2cs == db2cs && previous.db2user == db2user && previous.db2password == db2password && previous.isValid)
           previous
         else
           previous.close()
-          val connectionPool = new ConnectionPool(db2cs, db2user, db2password)
+          val connectionPool = new ConnectionPool(db2cs, db2user, db2password, charset)
           previousOption = Some(connectionPool)
           connectionPool
-      case None => new ConnectionPool(db2cs, db2user, db2password)
+      case None => new ConnectionPool(db2cs, db2user, db2password, charset)
 
-  def memo(db2user: String, db2password: String, previousOption: Option[ConnectionPool]): ConnectionPool =
-    previousOption match
-      case Some(previous) =>
-        if (previous.db2cs == db2cs && previous.db2user == db2user && previous.db2password == db2password && previous.isValid)
-          previous
-        else
-          previous.close()
-          new ConnectionPool(db2cs, db2user, db2password)
-      case None => new ConnectionPool(db2cs, db2user, db2password)
+/*
+def memo(db2user: String, db2password: String, previousOption: Option[ConnectionPool]): ConnectionPool =
+  previousOption match
+    case Some(previous) =>
+      if (previous.db2cs == db2cs && previous.db2user == db2user && previous.db2password == db2password && previous.isValid)
+        previous
+      else
+        previous.close()
+        new ConnectionPool(db2cs, db2user, db2password)
+    case None => new ConnectionPool(db2cs, db2user, db2password)
+ */
