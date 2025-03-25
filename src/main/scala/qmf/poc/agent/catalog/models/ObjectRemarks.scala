@@ -19,4 +19,5 @@ object ObjectRemarks:
         "remarks" -> JsString(o.remarks)
       )
 
+    //noinspection NotImplementedCode
     def read(value: JsValue): ObjectRemarks = ???

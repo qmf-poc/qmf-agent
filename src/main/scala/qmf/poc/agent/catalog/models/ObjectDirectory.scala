@@ -32,4 +32,5 @@ object ObjectDirectory:
         "restricted" -> JsString(o.restricted)
       )
 
+    //noinspection NotImplementedCode
     def read(value: JsValue): ObjectDirectory = ???

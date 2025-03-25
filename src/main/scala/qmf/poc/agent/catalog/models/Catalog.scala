@@ -13,4 +13,5 @@ object Catalog:
         "objectDirectories" -> JsArray(o.objectDirectories.map(_.toJson).toVector)
       )
 
+    //noinspection NotImplementedCode
     def read(value: JsValue): Catalog = ???

@@ -15,4 +15,5 @@ object ObjectData:
         "appldata" -> JsString(o.appldata)
       )
 
+    //noinspection NotImplementedCode
     def read(value: JsValue): ObjectData = ???
