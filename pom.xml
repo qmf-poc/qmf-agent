@@ -8,35 +8,28 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <vertx.version>5.0.0.CR5</vertx.version>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <junit.version>5.9.3</junit.version>
+        <slf4j.version>2.0.17</slf4j.version>
     </properties>
 
     <dependencies>
-        <!-- Vert.x Core -->
         <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-core</artifactId>
-            <version>${vertx.version}</version>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <version>12.1.0.0</version> <!-- Use the latest version as appropriate -->
         </dependency>
-
-        <!-- Vert.x Web -->
         <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-web</artifactId>
-            <version>${vertx.version}</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.13</version>
         </dependency>
-
-        <!-- Vert.x Web requires this netty -->
         <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-resolver-dns-native-macos</artifactId>
-            <version>4.1.119.Final</version>
-            <scope>runtime</scope>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.13</version>
         </dependency>
-
         <!-- JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
