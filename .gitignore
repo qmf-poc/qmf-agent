@@ -33,3 +33,4 @@ metals.sbt
 lib
 
 Debug_Log_*.txt
+dependency-reduced-pom.xml
