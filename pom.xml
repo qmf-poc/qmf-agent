@@ -8,18 +8,24 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <junit.version>5.9.3</junit.version>
         <slf4j.version>2.0.17</slf4j.version>
+        <vertx.version>5.0.0.CR5</vertx.version>
     </properties>
 
     <dependencies>
         <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-db2-client</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <!--dependency>
             <groupId>com.ibm.db2</groupId>
             <artifactId>jcc</artifactId>
-            <version>12.1.0.0</version> <!-- Use the latest version as appropriate -->
-        </dependency>
+            <version>12.1.0.0</version>
+        </dependency-->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
