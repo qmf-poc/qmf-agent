@@ -217,6 +217,30 @@ public class CatalogProvider implements Closeable {
             dbExecutor.shutdown();
     }
 
+    public static void printCatalog(Args args) {
+        log.debug("printCatalog.enter");
+        try (final CatalogProvider provider = new CatalogProvider(args)) {
+            for (int i = 1; i <= args.repeat; i++) {
+                if (i > 1) {
+                    Thread.sleep(1000);
+                }
+                if (provider.parallelEnabled()) {
+                    log.debug("parallel fetch: {}", i);
+                    final CompletableFuture<Catalog> catalogFuture = provider.catalogAsync();
+                    final Catalog catalog = catalogFuture.join();
+                    System.out.println(catalog.toString());
+                } else {
+                    System.out.println(provider.catalog().toString());
+                }
+            }
+            log.debug("printCatalog.exit");
+        } catch (SQLException e) {
+            log.error("printCatalog.failed: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static final String QUERY_DIRECTORY = "SELECT * FROM Q.OBJECT_DIRECTORY";
 
     private static final String QUERY_REMARKS = "SELECT * FROM Q.OBJECT_REMARKS OFFSET 1 ROWS FETCH NEXT 335 ROWS ONLY";

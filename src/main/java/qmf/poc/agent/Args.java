@@ -4,6 +4,8 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+
 public class Args {
     final String syntax;
 
@@ -15,6 +17,9 @@ public class Args {
     public final boolean printHelp;
     public final boolean printCatalog;
     public final int repeat;
+    public final URI serviceUri;
+    public final boolean connectToService;
+    public final boolean printVersion;
 
     public Args(String[] args) throws ParseException {
         syntax = "java -jar agent-[version].jar";
@@ -27,15 +32,23 @@ public class Args {
         db2charsetName = cmd.getOptionValue("charset", "UTF-8");
         parallel = cmd.hasOption("parallel");
         printHelp = cmd.hasOption("help");
+        printVersion = cmd.hasOption("version");
         printCatalog = cmd.hasOption("print-catalog");
-        int repeat;
+        if (cmd.hasOption("websocket-uri")) {
+            try {
+                serviceUri = URI.create(cmd.getOptionValue("websocket-uri"));
+            } catch (Exception e) {
+                throw new ParseException(e.getMessage());
+            }
+        } else {
+            serviceUri = null;
+        }
+        connectToService = serviceUri != null;
         try {
             repeat = Integer.parseInt(cmd.getOptionValue("repeat", "1"));
         } catch (NumberFormatException e) {
-            log.error("Invalid repeat value: {}", cmd.getOptionValue("repeat"), e);
-            repeat = Integer.parseInt(cmd.getOptionValue("repeat", "1"));
+            throw new ParseException(e.getMessage());
         }
-        this.repeat = repeat;
     }
 
     public void printHelp() {
@@ -47,16 +60,19 @@ public class Args {
 
     private static Options getOptions() {
         final Options options = new Options();
-        options.addOption("h", "help", false, "Show help");
-        options.addOption("d", "db2cs", true, "db2 connection string: jdbc:db2://host:port/db");
-        options.addOption("u", "db2user", true, "db2 user");
-        options.addOption("p", "db2password", true, "db2 password");
         options.addOption("c", "charset", true, "charset for long data, default UTF-8");
-        options.addOption("r", "print-catalog", false, "Fetch catalog and print");
-        options.addOption("l", "parallel", false, "Use parallel threads");
+        options.addOption("h", "help", false, "Show help");
+        options.addOption("g", "print-catalog", false, "Fetch catalog and print");
+        options.addOption("l", "parallel", false, "use parallel threads");
         options.addOption("n", "repeat", true, "repeat operation");
+        options.addOption("p", "db2password", true, "db2 password");
+        options.addOption("s", "db2cs", true, "db2 connection string: jdbc:db2://host:port/db");
+        options.addOption("u", "db2user", true, "db2 user");
+        options.addOption("v", "version", false, "print version");
+        options.addOption("w", "websocket-uri", true, "service websocket uri");
         return options;
     }
 
+    @SuppressWarnings("unused")
     private static final Logger log = LoggerFactory.getLogger("agent");
 }
