@@ -1,8 +1,9 @@
 package qmf.poc.agent;
 
 import org.apache.commons.cli.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import qmf.poc.agent.broker.Broker;
 import qmf.poc.agent.catalog.CatalogProvider;
 import qmf.poc.agent.ws.WebSockerProvider;
 
@@ -15,7 +16,7 @@ public class Main {
             if (args.printHelp) args.printHelp();
             if (args.printCatalog) CatalogProvider.printCatalog(args);
             if (args.printVersion) System.out.println("agent-0.0.1");
-            if (args.connectToService) WebSockerProvider.listen(args);
+            if (args.connectToService) WebSockerProvider.listen(args, new Broker());
 
         } catch (ParseException e) {
             System.err.println(e.getMessage());
@@ -24,5 +25,5 @@ public class Main {
     }
 
     @SuppressWarnings("unused")
-    private static final Logger log = LoggerFactory.getLogger("agent");
+    private static final Log log = LogFactory.getLog("agent");
 }

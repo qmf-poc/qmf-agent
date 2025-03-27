@@ -1,7 +1,8 @@
 package qmf.poc.agent.ws;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import qmf.poc.agent.broker.Broker;
 
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
@@ -15,6 +16,11 @@ public class WebSocketListener implements WebSocket.Listener, WebSocketConnectio
     private final StringBuffer accumulatedText = new StringBuffer();
     private final CompletableFuture<Optional<Throwable>> closeFuture = new CompletableFuture<>();
     private final AtomicReference<WebSocket> ws = new AtomicReference<>();
+    private final Broker broker;
+
+    public WebSocketListener(Broker broker) {
+        this.broker = broker;
+    }
 
     public Optional<Throwable> listen() {
         return closeFuture.join();
@@ -22,7 +28,7 @@ public class WebSocketListener implements WebSocket.Listener, WebSocketConnectio
 
     @Override
     public void onOpen(WebSocket webSocket) {
-        log.trace("WebSocketListener.onOpen(subProtocol{})", webSocket.getSubprotocol());
+        log.trace("WebSocketListener.onOpen, subProtocol=" + webSocket.getSubprotocol());
         ws.set(webSocket);
         WebSocket.Listener.super.onOpen(webSocket);
     }
@@ -30,9 +36,16 @@ public class WebSocketListener implements WebSocket.Listener, WebSocketConnectio
     @Override
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
         accumulatedText.append(data);
-        log.trace("WebSocketListener.onText(last={}): {}", last, accumulatedText);
+        log.trace("WebSocketListener.onText, last=" + last + ", " + accumulatedText);
         if (last) {
-            webSocket.sendText(accumulatedText.toString(), true);
+            final String response;
+            try {
+                response = broker.handleJsonRPC(accumulatedText.toString());
+                if (response != null)
+                    webSocket.sendText(response, true);
+            } catch (Exception e) {
+                log.warn("Failed to parse JSON-RPC message", e);
+            }
             accumulatedText.setLength(0);
         }
         return WebSocket.Listener.super.onText(webSocket, data, last);
@@ -40,25 +53,25 @@ public class WebSocketListener implements WebSocket.Listener, WebSocketConnectio
 
     @Override
     public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
-        log.trace("WebSocketListener.onBinary(last={})", last);
+        log.trace("WebSocketListener.onBinary, last=" + last);
         return WebSocket.Listener.super.onBinary(webSocket, data, last);
     }
 
     @Override
     public CompletionStage<?> onPing(WebSocket webSocket, ByteBuffer message) {
-        log.trace("WebSocketListener.onPing({})", message);
+        log.trace("WebSocketListener.onPing, message=" + message);
         return WebSocket.Listener.super.onPing(webSocket, message);
     }
 
     @Override
     public CompletionStage<?> onPong(WebSocket webSocket, ByteBuffer message) {
-        log.trace("WebSocketListener.onPong({})", message);
+        log.trace("WebSocketListener.onPong, message" + message);
         return WebSocket.Listener.super.onPong(webSocket, message);
     }
 
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-        log.trace("WebSocketListener.onClose({}, {})", statusCode, reason);
+        log.trace("WebSocketListener.onClose, code=" + statusCode + ", reason=" + reason);
         closeFuture.complete(Optional.empty());
         return WebSocket.Listener.super.onClose(webSocket, statusCode, reason);
     }
@@ -83,5 +96,5 @@ public class WebSocketListener implements WebSocket.Listener, WebSocketConnectio
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger("agent");
+    private static final Log log = LogFactory.getLog("agent");
 }

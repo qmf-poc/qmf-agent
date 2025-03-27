@@ -1,8 +1,8 @@
 package qmf.poc.agent;
 
 import org.apache.commons.cli.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.net.URI;
 
@@ -74,5 +74,5 @@ public class Args {
     }
 
     @SuppressWarnings("unused")
-    private static final Logger log = LoggerFactory.getLogger("agent");
+    private static final Log log = LogFactory.getLog("agent");
 }

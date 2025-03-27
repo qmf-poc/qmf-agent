@@ -1,12 +1,12 @@
 package qmf.poc.agent.ws;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import qmf.poc.agent.Args;
+import qmf.poc.agent.broker.Broker;
 
 import java.io.Closeable;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.Optional;
@@ -19,8 +19,10 @@ public class WebSockerProvider implements Closeable {
 
     private final HttpClient client;
     private final ExecutorService executor;
+    private final Broker broker;
 
-    public WebSockerProvider() {
+    public WebSockerProvider(Broker broker) {
+        this.broker = broker;
         log.debug("Building HttpClient...");
         executor = Executors.newCachedThreadPool();
         client = HttpClient.newBuilder().executor(executor).build();
@@ -34,16 +36,16 @@ public class WebSockerProvider implements Closeable {
 
 
     private WebSocketConnection getConnection(URI uri) throws CompletionException {
-        log.debug("Connecting to {}...", uri.toString());
-        final WebSocketListener listener = new WebSocketListener();
+        log.debug("Connecting to " + uri + "...");
+        final WebSocketListener listener = new WebSocketListener(broker);
         final CompletableFuture<WebSocket> future = client.newWebSocketBuilder().buildAsync(uri, listener);
         future.join();
-        log.debug("Connecting to {}... done", uri);
+        log.debug("Connecting to "+ uri+ " done");
         return listener;
     }
 
-    public static void listen(Args args) {
-        try (final WebSockerProvider webSockerProvider = new WebSockerProvider()) {
+    public static void listen(Args args, Broker broker) {
+        try (final WebSockerProvider webSockerProvider = new WebSockerProvider(broker)) {
             boolean exit = false;
             while (!exit && !Thread.currentThread().isInterrupted()) {
                 try (final WebSocketConnection connection = webSockerProvider.getConnection(args.serviceUri)) {
@@ -53,7 +55,6 @@ public class WebSockerProvider implements Closeable {
                     }
                 } catch (Exception e) {
                     if (e instanceof CompletionException) {
-                        final Throwable c = e.getCause() == null ? e : e.getCause();
                         log.warn("Connection error: ", e);
                         log.info("Will reconnecting in 2 sec...");
                         //noinspection BusyWait
@@ -73,5 +74,5 @@ public class WebSockerProvider implements Closeable {
         }
     }
 
-    private static final Logger log = LoggerFactory.getLogger("agent");
+    private static final Log log = LogFactory.getLog("agent");
 }

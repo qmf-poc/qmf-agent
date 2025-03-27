@@ -3,8 +3,8 @@ package qmf.poc.agent.catalog;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import qmf.poc.agent.Args;
 import qmf.poc.agent.catalog.models.Catalog;
 import qmf.poc.agent.catalog.models.ObjectData;
@@ -225,7 +225,7 @@ public class CatalogProvider implements Closeable {
                     Thread.sleep(1000);
                 }
                 if (provider.parallelEnabled()) {
-                    log.debug("parallel fetch: {}", i);
+                    log.debug("parallel fetch: " + i);
                     final CompletableFuture<Catalog> catalogFuture = provider.catalogAsync();
                     final Catalog catalog = catalogFuture.join();
                     System.out.println(catalog.toString());
@@ -245,6 +245,6 @@ public class CatalogProvider implements Closeable {
 
     private static final String QUERY_REMARKS = "SELECT * FROM Q.OBJECT_REMARKS OFFSET 1 ROWS FETCH NEXT 335 ROWS ONLY";
 
-    private static final Logger log = LoggerFactory.getLogger("agent");
+    private static final Log log = LogFactory.getLog("agent");
 
 }
