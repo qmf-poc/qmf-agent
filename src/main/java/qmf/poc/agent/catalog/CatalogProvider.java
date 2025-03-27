@@ -1,11 +1,11 @@
 package qmf.poc.agent.catalog;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qmf.poc.agent.Args;
 import qmf.poc.agent.catalog.models.Catalog;
 import qmf.poc.agent.catalog.models.ObjectData;
 import qmf.poc.agent.catalog.models.ObjectDirectory;
@@ -14,6 +14,7 @@ import qmf.poc.agent.catalog.models.ObjectRemarks;
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.nio.charset.Charset;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -26,6 +27,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class CatalogProvider implements Closeable {
+    private final DataSource dataSource;
+    private final Charset charset;
+    private final ExecutorService dbExecutor;
+
     public CatalogProvider(String db2sc, String user, String password, String charsetName, boolean parallelEnabled) {
         charset = Charset.forName(charsetName);
         dbExecutor = parallelEnabled ? Executors.newFixedThreadPool(4) : null;
@@ -55,7 +60,8 @@ public class CatalogProvider implements Closeable {
     public List<ObjectData> objectDataList() throws SQLException {
         List<ObjectData> result = new ArrayList<>();
         log.trace("objectDataList.getConnection...");
-        try (final Statement stmt = dataSource.getConnection().createStatement();
+        try (final Connection connection = dataSource.getConnection();
+             final Statement stmt = connection.createStatement();
              final ResultSet row = stmt.executeQuery(QUERY_DATA)) {
             log.trace("objectDataList.iterate");
             int count = 0;
@@ -89,8 +95,10 @@ public class CatalogProvider implements Closeable {
     public List<ObjectDirectory> objectDirectoryList() throws SQLException {
         final List<ObjectDirectory> result = new ArrayList<>();
         log.trace("objectDirectoryList.getConnection...");
-        try (final Statement stmt = dataSource.getConnection().createStatement();
-             final ResultSet row = stmt.executeQuery(QUERY_DIRECTORY)) {
+        try (
+                final Connection connection = dataSource.getConnection();
+                final Statement stmt = connection.createStatement();
+                final ResultSet row = stmt.executeQuery(QUERY_DIRECTORY)) {
             log.trace("objectDirectoryList.iterate");
             int count = 0;
             while (row.next()) {
@@ -128,8 +136,10 @@ public class CatalogProvider implements Closeable {
     public List<ObjectRemarks> objectRemarksList() throws SQLException {
         List<ObjectRemarks> result = new ArrayList<>();
         log.trace("objectRemarksList.getConnection...");
-        try (final Statement stmt = dataSource.getConnection().createStatement();
-             final ResultSet row = stmt.executeQuery(QUERY_REMARKS)) {
+        try (
+                final Connection connection = dataSource.getConnection();
+                final Statement stmt = connection.createStatement();
+                final ResultSet row = stmt.executeQuery(QUERY_REMARKS)) {
             log.trace("objectRemarksList.iterate");
             int count = 0;
             while (row.next()) {
@@ -181,10 +191,6 @@ public class CatalogProvider implements Closeable {
     public boolean parallelEnabled() {
         return dbExecutor != null;
     }
-
-    private final DataSource dataSource;
-    private final Charset charset;
-    private final ExecutorService dbExecutor;
 
     private static final String QUERY_DATA = String.join("\n",
             "SELECT",

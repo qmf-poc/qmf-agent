@@ -1,17 +1,20 @@
-package qmf.poc.agent.catalog;
+package qmf.poc.agent;
 
 import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Args {
     final String syntax;
 
-    final String db2cs;
-    final String db2user;
-    final String db2password;
-    final String db2charsetName;
-    final boolean parallel;
+    public final String db2cs;
+    public final String db2user;
+    public final String db2password;
+    public final String db2charsetName;
+    public final boolean parallel;
     public final boolean printHelp;
     public final boolean printCatalog;
+    public final int repeat;
 
     public Args(String[] args) throws ParseException {
         syntax = "java -jar agent-[version].jar";
@@ -25,6 +28,14 @@ public class Args {
         parallel = cmd.hasOption("parallel");
         printHelp = cmd.hasOption("help");
         printCatalog = cmd.hasOption("print-catalog");
+        int repeat;
+        try {
+            repeat = Integer.parseInt(cmd.getOptionValue("repeat", "1"));
+        } catch (NumberFormatException e) {
+            log.error("Invalid repeat value: {}", cmd.getOptionValue("repeat"), e);
+            repeat = Integer.parseInt(cmd.getOptionValue("repeat", "1"));
+        }
+        this.repeat = repeat;
     }
 
     public void printHelp() {
@@ -43,6 +54,9 @@ public class Args {
         options.addOption("c", "charset", true, "charset for long data, default UTF-8");
         options.addOption("r", "print-catalog", false, "Fetch catalog and print");
         options.addOption("l", "parallel", false, "Use parallel threads");
+        options.addOption("n", "repeat", true, "repeat operation");
         return options;
     }
+
+    private static final Logger log = LoggerFactory.getLogger("agent");
 }
