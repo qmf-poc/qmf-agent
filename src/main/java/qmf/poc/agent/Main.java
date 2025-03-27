@@ -1,53 +1,46 @@
 package qmf.poc.agent;
 
-import io.vertx.db2client.DB2Builder;
-import io.vertx.db2client.DB2ConnectOptions;
-import io.vertx.sqlclient.*;
+import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import qmf.poc.agent.catalog.Args;
 import qmf.poc.agent.catalog.CatalogProvider;
-import qmf.poc.agent.catalog.models.ObjectRemarks;
+import qmf.poc.agent.catalog.models.Catalog;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
-
-import static java.sql.DriverManager.getConnection;
+import java.util.concurrent.CompletableFuture;
 
 public class Main {
     private static final Logger log = LoggerFactory.getLogger("agent");
 
-    public static void main(String[] args) {
-        System.out.println("set log level: -Dorg.slf4j.simpleLogger.defaultLogLevel=TRACE|DEBUG|INFO|WARN|ERROR");
-        System.out.println("db2 connection string: -Dqmf.db2cs=jdbc:db2://host:port/db");
-        String db2cs = System.getProperty("qmf.db2cs", "jdbc:db2://qmfdb2.s4y.solutions:50000/sample");
-        final DB2ConnectOptions connectOptions = new DB2ConnectOptions()
-                .setPort(50000)
-                .setHost("qmfdb2.s4y.solutions")
-                .setDatabase("sample")
-                .setUser("db2inst1")
-                .setPassword("password");
-        final PoolOptions poolOptions = new PoolOptions()
-                .setMaxSize(5);
-        final SqlClient client = DB2Builder.client()
-                .with(poolOptions)
-                .connectingTo(connectOptions)
-                .build();
+    public static void main(String[] cli) {
+        try {
+            final Args args = new Args(cli);
 
-        // final CatalogProvider provider = new CatalogProvider(client, StandardCharsets.UTF_8);
-        final CatalogProvider provider = new CatalogProvider(client, Charset.forName("IBM037"));
-        provider.objectRemarksList()
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        final List<ObjectRemarks> r = ar.result();
-                        log.info("Catalog: {}", r.toString());
-                        client.close();
-                    } else {
-                        // Handle failure, log the error
-                        log.error("Error occurred:", ar.cause());
-                    }
-                });
+            if (args.printHelp) args.printHelp();
+            if (args.printCatalog) printCatalog(args);
+
+        } catch (ParseException e) {
+            System.err.println(e.getMessage());
+            System.err.println("Use --help to show all options");
+        }
+    }
+
+
+    private static void printCatalog(Args args) {
+        log.debug("printCatalog.enter");
+        try (final CatalogProvider provider = new CatalogProvider(args)) {
+            if (provider.parallelEnabled()) {
+                log.debug("parallel fetch");
+                final CompletableFuture<Catalog> catalogFuture = provider.catalogAsync();
+                final Catalog catalog = catalogFuture.join();
+                System.out.println(catalog.toString());
+            } else {
+                System.out.println(provider.catalog().toString());
+            }
+            log.debug("printCatalog.exit");
+        } catch (SQLException e) {
+            log.error("printCatalog.failed: " + e.getMessage(), e);
+        }
     }
 }

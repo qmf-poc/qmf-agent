@@ -28,8 +28,8 @@ public class ObjectDirectory {
 
     @Override
     public String toString() {
-        String s = "'" + owner + "' '" + name + "' '" + type + "' '" + subType + "' " + objectLevel +
-                " '" + restricted + "' '" + model + "' '" + created + "' '" + modified + "' '" + lastUsed + "'";
-        return s.length() <= 132 ? s : s.substring(0, 129) + "...'";
+        String s = "'" + owner + "'|'" + name + "'|'" + type + "'|'" + subType + "'|'" + objectLevel +
+                "'|'" + restricted + "'|'" + model + "'|'" + created + "'|'" + modified + "'|'" + lastUsed;// + "'";
+        return s.length() <= 131 ? s + "'" : s.substring(0, 129) + "...'";
     }
 }

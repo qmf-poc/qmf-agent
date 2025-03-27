@@ -1,7 +1,5 @@
 package qmf.poc.agent.catalog.models;
 
-import static java.lang.Math.min;
-
 public class ObjectData {
     final String owner;
     final String name;
@@ -14,12 +12,13 @@ public class ObjectData {
         this.type = type;
         this.appldata = appldata;
     }
+
     @Override
     public String toString() {
-        final String s = "'" + owner + "' '" + name + "' '" + type + "' '" + appldata + "'";
+        final String s = "'" + owner + "'|'" + name + "'|'" + type + "'|'" + appldata;// + "'";
 
         if (s.length() < 131) {
-            return s;
+            return s + "'";
         } else {
             return s.substring(0, 128) + "...'";
         }

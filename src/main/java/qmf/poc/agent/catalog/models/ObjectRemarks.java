@@ -15,7 +15,7 @@ public class ObjectRemarks {
 
     @Override
     public String toString() {
-        String s = "'" + owner + "' '" + name + "' '" + type + "' '" + remarks + "'";
-        return s.length() <= 132 ? s : s.substring(0, 129) + "...'";
+        String s = "'" + owner + "'|'" + name + "'|'" + type + "'|'" + remarks;// + "'";
+        return s.length() <= 131 ? s + "'" : s.substring(0, 129) + "...'";
     }
 }

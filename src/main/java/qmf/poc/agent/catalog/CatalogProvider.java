@@ -1,9 +1,9 @@
 package qmf.poc.agent.catalog;
 
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.SqlClient;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.dbcp2.*;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qmf.poc.agent.catalog.models.Catalog;
@@ -11,116 +11,180 @@ import qmf.poc.agent.catalog.models.ObjectData;
 import qmf.poc.agent.catalog.models.ObjectDirectory;
 import qmf.poc.agent.catalog.models.ObjectRemarks;
 
+import javax.sql.DataSource;
+import java.io.Closeable;
 import java.nio.charset.Charset;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class CatalogProvider {
-    public CatalogProvider(SqlClient client, Charset charset) {
-        this.client = client;
-        this.charset = charset;
+public class CatalogProvider implements Closeable {
+    public CatalogProvider(String db2sc, String user, String password, String charsetName, boolean parallelEnabled) {
+        charset = Charset.forName(charsetName);
+        dbExecutor = parallelEnabled ? Executors.newFixedThreadPool(4) : null;
+        final Properties props = new Properties();
+        props.put("user", user);
+        props.put("password", password);
+        final ConnectionFactory connectionFactory =
+                new DriverManagerConnectionFactory(db2sc, props);
+        final PoolableConnectionFactory poolableConnectionFactory =
+                new PoolableConnectionFactory(connectionFactory, null);
+        final ObjectPool<PoolableConnection> connectionPool =
+                new GenericObjectPool<>(poolableConnectionFactory);
+        poolableConnectionFactory.setPool(connectionPool);
+        dataSource = new PoolingDataSource<>(connectionPool);
+        log.debug("dataSource created");
     }
 
-    public Future<List<ObjectData>> objectDataList() {
-        // Return a Future that will complete when the query finishes
-        return client.query(QUERY_DATA).execute()
-                .compose(rows -> {
-                    List<ObjectData> result = new ArrayList<>();
-
-                    for (Row row : rows) {
-                        String owner = row.getString("OWNER");
-                        String name = row.getString("NAME");
-                        String type = row.getString("TYPE");
-                        byte[] applDataBinary = row.getBuffer("CONCATENATED_APPLDATA").getBytes();
-                        String concatenatedApplData = new String(applDataBinary, charset);
-
-                        ObjectData objectData = new ObjectData(owner, name, type, concatenatedApplData);
-                        result.add(objectData);
-                    }
-
-                    // Return the result list wrapped in a Future
-                    return Future.succeededFuture(result);
-                })
-                .onFailure(cause -> log.error("An error occurred: {}", cause.getMessage(), cause));
+    public CatalogProvider(Args args) {
+        this(
+                args.db2cs,
+                args.db2user,
+                args.db2password,
+                args.db2charsetName,
+                args.parallel);
     }
 
-    public Future<List<ObjectDirectory>> objectDirectoryList() {
-        return client.query(QUERY_DIRECTORY).execute()
-                .compose(rows -> {
-                    List<ObjectDirectory> result = new ArrayList<>();
+    public List<ObjectData> objectDataList() throws SQLException {
+        List<ObjectData> result = new ArrayList<>();
+        log.trace("objectDataList.getConnection...");
+        try (final Statement stmt = dataSource.getConnection().createStatement();
+             final ResultSet row = stmt.executeQuery(QUERY_DATA)) {
+            log.trace("objectDataList.iterate");
+            int count = 0;
+            while (row.next()) {
+                log.trace("objectDataList.iterate: " + ++count);
+                final String owner = row.getString("OWNER");
+                final String name = row.getString("NAME");
+                final String type = row.getString("TYPE");
+                final byte[] applDataBinary = row.getBytes("CONCATENATED_APPLDATA");
+                final String concatenatedApplData = new String(applDataBinary, charset); // TODO: should be handled by JDBC
 
-                    for (Row row : rows) {
-                        String owner = row.getString("OWNER");
-                        String name = row.getString("NAME");
-                        String type = row.getString("TYPE");
-                        String subType = row.getString("SUBTYPE");
-                        int objectLevel = row.getInteger("OBJECTLEVEL");
-                        String restricted = row.getString("RESTRICTED");
-                        String model = row.getString("MODEL");
-                        String created = row.getString("CREATED");
-                        String modified = row.getString("MODIFIED");
-                        String lastUsed = row.getString("LASTUSED");
-
-                        ObjectDirectory objectDirectory = new ObjectDirectory(owner, name, type, subType, objectLevel, restricted, model, created, modified, lastUsed);
-                        result.add(objectDirectory);
-                    }
-
-                    return Future.succeededFuture(result);
-                })
-                .onFailure(cause -> log.error("An error occurred: {}", cause.getMessage(), cause));
+                final ObjectData objectData = new ObjectData(owner, name, type, concatenatedApplData);
+                result.add(objectData);
+            }
+            log.trace("objectDataList.done: " + count);
+        }
+        return result;
     }
 
-    public Future<List<ObjectRemarks>> objectRemarksList() {
-        return client.preparedQuery(QUERY_REMARKS)
-        /*
-        return client.query(QUERY_REMARKS).execute()
-                .compose(rows -> {
-                    List<ObjectRemarks> result = new ArrayList<>();
-
-                    for (Row row : rows) {
-                        String owner = row.getString("OWNER");
-                        String name = row.getString("NAME");
-                        String type = row.getString("TYPE");
-                        String remarks = row.getString("REMARKS");
-
-                        ObjectRemarks objectRemarks = new ObjectRemarks(owner, name, type, remarks);
-                        result.add(objectRemarks);
-                    }
-
-                    return Future.succeededFuture(result);
-                })
-                .onFailure(cause ->
-                        log.error("An error occurred: {}", cause.getMessage(), cause));
-         */
+    public CompletableFuture<List<ObjectData>> objectDataListAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return objectDataList(); // Call the blocking method safely
+            } catch (SQLException e) {
+                log.error("Error fetching object data", e);
+                return Collections.emptyList(); // Return empty list on failure
+            }
+        }, dbExecutor);
     }
 
-    public Future<Catalog> catalog() {
-        // Fetch object data, object remarks, and object directories in parallel
-        Future<List<ObjectData>> objectDataFuture = objectDataList();
-        Future<List<ObjectRemarks>> objectRemarksFuture = objectRemarksList();
-        Future<List<ObjectDirectory>> objectDirectoryFuture = objectDirectoryList();
+    public List<ObjectDirectory> objectDirectoryList() throws SQLException {
+        final List<ObjectDirectory> result = new ArrayList<>();
+        log.trace("objectDirectoryList.getConnection...");
+        try (final Statement stmt = dataSource.getConnection().createStatement();
+             final ResultSet row = stmt.executeQuery(QUERY_DIRECTORY)) {
+            log.trace("objectDirectoryList.iterate");
+            int count = 0;
+            while (row.next()) {
+                log.trace("objectDirectoryList.iterate: " + ++count);
+                final String owner = row.getString("OWNER");
+                final String name = row.getString("NAME");
+                final String type = row.getString("TYPE");
+                final String subType = row.getString("SUBTYPE");
+                final int objectLevel = row.getInt("OBJECTLEVEL");
+                final String restricted = row.getString("RESTRICTED");
+                final String model = row.getString("MODEL");
+                final String created = row.getString("CREATED");
+                final String modified = row.getString("MODIFIED");
+                final String lastUsed = row.getString("LAST_USED");
 
-        // Use composite future to gather all results and create a Catalog object
-        return Future.all(objectDataFuture, objectRemarksFuture, objectDirectoryFuture)
-                .compose(compositeFuture -> {
-                    // Extract results from futures
-                    List<ObjectData> objectDataList = compositeFuture.resultAt(0);
-                    List<ObjectRemarks> objectRemarksList = compositeFuture.resultAt(1);
-                    List<ObjectDirectory> objectDirectoryList = compositeFuture.resultAt(2);
-
-                    // Create a Catalog object
-                    Catalog catalog = new Catalog(objectDataList, objectRemarksList, objectDirectoryList);
-
-                    // Return the Catalog wrapped in a future
-                    return Future.succeededFuture(catalog);
-                })
-                .onFailure(cause -> {
-                    log.error("An error occurred while fetching catalog data: {}", cause.getMessage(), cause);
-                });
+                final ObjectDirectory objectDirectory = new ObjectDirectory(owner, name, type, subType, objectLevel, restricted, model, created, modified, lastUsed);
+                result.add(objectDirectory);
+            }
+            log.trace("objectDirectoryList.done: " + count);
+        }
+        return result;
     }
 
-    private SqlClient client;
-    private Charset charset;
+    public CompletableFuture<List<ObjectRemarks>> objectRemarksListAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return objectRemarksList();
+            } catch (SQLException e) {
+                log.error("Error fetching object remarks", e);
+                return Collections.emptyList();
+            }
+        }, dbExecutor);
+    }
+
+    public List<ObjectRemarks> objectRemarksList() throws SQLException {
+        List<ObjectRemarks> result = new ArrayList<>();
+        log.trace("objectRemarksList.getConnection...");
+        try (final Statement stmt = dataSource.getConnection().createStatement();
+             final ResultSet row = stmt.executeQuery(QUERY_REMARKS)) {
+            log.trace("objectRemarksList.iterate");
+            int count = 0;
+            while (row.next()) {
+                log.trace("objectRemarksList.iterate: " + ++count);
+                final String owner = row.getString("OWNER");
+                final String name = row.getString("NAME");
+                final String type = row.getString("TYPE");
+                final String remarks = row.getString("REMARKS");
+
+                final ObjectRemarks objectRemarks = new ObjectRemarks(owner, name, type, remarks);
+                result.add(objectRemarks);
+            }
+            log.trace("objectRemarksList.done: " + count);
+        }
+        return result;
+    }
+
+    public CompletableFuture<List<ObjectDirectory>> objectDirectoryListAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return objectDirectoryList();
+            } catch (SQLException e) {
+                log.error("Error fetching object directories", e);
+                return Collections.emptyList();
+            }
+        }, dbExecutor);
+    }
+
+    public Catalog catalog() throws SQLException {
+        final List<ObjectData> objectDataList = objectDataList();
+        final List<ObjectRemarks> objectRemarksList = objectRemarksList();
+        final List<ObjectDirectory> objectDirectoryList = objectDirectoryList();
+        return new Catalog(objectDataList, objectRemarksList, objectDirectoryList);
+    }
+
+    public CompletableFuture<Catalog> catalogAsync() {
+        CompletableFuture<List<ObjectData>> objectDataFuture = objectDataListAsync();
+        CompletableFuture<List<ObjectRemarks>> objectRemarksFuture = objectRemarksListAsync();
+        CompletableFuture<List<ObjectDirectory>> objectDirectoryFuture = objectDirectoryListAsync();
+
+        return CompletableFuture.allOf(objectDataFuture, objectRemarksFuture, objectDirectoryFuture)
+                .thenApply(v -> new Catalog(
+                        objectDataFuture.join(),
+                        objectRemarksFuture.join(),
+                        objectDirectoryFuture.join()
+                ));
+    }
+
+    public boolean parallelEnabled() {
+        return dbExecutor != null;
+    }
+
+    private final DataSource dataSource;
+    private final Charset charset;
+    private final ExecutorService dbExecutor;
 
     private static final String QUERY_DATA = String.join("\n",
             "SELECT",
@@ -134,9 +198,23 @@ public class CatalogProvider {
             "  OWNER, NAME, \"TYPE\""
     );
 
+    @Override
+    public void close() {
+        if (dataSource instanceof PoolingDataSource) {
+            try {
+                ((PoolingDataSource<?>) dataSource).close();
+            } catch (Exception e) {
+                log.error("Error closing the connection pool", e);
+            }
+        }
+        if (dbExecutor != null)
+            dbExecutor.shutdown();
+    }
+
     private static final String QUERY_DIRECTORY = "SELECT * FROM Q.OBJECT_DIRECTORY";
 
     private static final String QUERY_REMARKS = "SELECT * FROM Q.OBJECT_REMARKS OFFSET 1 ROWS FETCH NEXT 335 ROWS ONLY";
 
     private static final Logger log = LoggerFactory.getLogger("agent");
+
 }
