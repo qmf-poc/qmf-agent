@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.lang.Math.min;
+
 public class Broker {
     private final ConcurrentHashMap<Double, CompletableFuture<Double>> pendingRequests = new ConcurrentHashMap<>();
     private final CatalogProvider catalogProvider;
@@ -21,10 +23,31 @@ public class Broker {
         this.catalogProvider = catalogProvider;
     }
 
+    private String handlePing(Integer id, Map<String, Object> params) {
+        String payload = params.get("payload") == null ? "null" : params.get("payload").toString();
+        log.debug("handleMethod: ping, id=" + id + ", payload=" + payload);
+        String result = "pong: " + payload;
+        log.debug("handled: snapshot, id=" + id + ", result=\"" + result + "\"");
+        return jsonRpc.formatResult(id, result);
+    }
+
+    private String handleSnapshot(Integer id, Map<String, Object> json) {
+        log.debug("method: snapshot, id=" + id);
+        // TODO: handle error
+        final Catalog catalog = catalogProvider.catalogParallel().join();
+        if (log.isDebugEnabled()) {
+            String res = catalog.toString();
+            log.debug("handled: snapshot, id=" + id + ", result=\"" + res.substring(0, min(200, res.length())) + "\"");
+        }
+        return jsonRpc.formatResult(id, Map.of("catalog", catalog));
+    }
+
     public String handleJsonRPC(String message) {
         try {
             final Map<String, Object> json = jsonRpc.parse(message);
-            final Double id = (Double) json.get("id");
+            final Double idd = (Double) json.get("id");
+            final Integer id = idd == null ? null : idd.intValue();
+
             try {
                 if (json.containsKey("method")) {
                     return handleMethod(id, json);
@@ -43,7 +66,7 @@ public class Broker {
         }
     }
 
-    private String handleMethod(Double id, Map<String, Object> json) throws ParseException {
+    private String handleMethod(Integer id, Map<String, Object> json) throws ParseException {
         final String method = (String) json.get("method");
         switch (method) {
             case "ping":
@@ -65,23 +88,10 @@ public class Broker {
         return Map.of();
     }
 
-    private String handlePing(Double id, Map<String, Object> params) {
-        /*
-        final Map<String, String> result = new HashMap<>();
-        result.put("payload", "pong: " + (params.get("payload") == null ? "null" : params.get("payload").toString()));
-         */
-        String result = params.get("payload") == null ? "null" : params.get("payload").toString();
-        return jsonRpc.formatResult(id, result);
-    }
 
-    private String handleSnapshot(Double id, Map<String, Object> json) {
-        final Catalog catalog = catalogProvider.catalogParallel().join();
-        return jsonRpc.formatResult(id, catalog);
-    }
-
-    private String handleResult(Double ignoredId, Map<String, Object> ignoredJson) {
+    private String handleResult(Integer ignoredId, Map<String, Object> ignoredJson) {
         return null;
     }
 
-    private static final Log log = LogFactory.getLog("agent");
+    private static final Log log = LogFactory.getLog(Broker.class);
 }

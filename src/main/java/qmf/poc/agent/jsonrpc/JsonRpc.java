@@ -14,26 +14,26 @@ public class JsonRpc {
         }.getType());
     }
 
-    public String formatResult(Double id, Object result) {
+    public String formatResult(Integer id, Object result) {
         Map<String, Object> response = new HashMap<>();
         response.put("jsonrpc", "2.0");
-        response.put("id", id == null ? null : id.intValue());
+        response.put("id", id);
         response.put("result", result);
         return gson.toJson(response);
     }
 
-    public String formatResult(Double id, String result) {
+    public String formatResult(Integer id, String result) {
         Map<String, Object> response = new HashMap<>();
         response.put("jsonrpc", "2.0");
-        response.put("id", id == null ? null : id.intValue());
+        response.put("id", id);
         response.put("result", result);
         return gson.toJson(response);
     }
 
-    public String formatError(Double id, int code, String message) {
+    public String formatError(Integer id, int code, String message) {
         Map<String, Object> response = new HashMap<>();
         response.put("jsonrpc", "2.0");
-        response.put("id", id == null ? null : id.intValue());
+        response.put("id", id);
 
         Map<String, Object> error = new HashMap<>();
         error.put("code", code);

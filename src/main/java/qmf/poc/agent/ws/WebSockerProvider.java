@@ -37,7 +37,7 @@ public class WebSockerProvider implements Closeable {
 
     private WebSocketConnection getConnection(URI uri) throws CompletionException {
         log.debug("Connecting to " + uri + "...");
-        final WebSocketListener listener = new WebSocketListener(broker);
+        final WebSocketHandler listener = new WebSocketHandler(broker);
         final CompletableFuture<WebSocket> future = client.newWebSocketBuilder().buildAsync(uri, listener);
         future.join();
         log.debug("Connecting to " + uri + " done");

@@ -11,14 +11,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class WebSocketListener implements WebSocket.Listener, WebSocketConnection {
+import static java.lang.Math.min;
+
+public class WebSocketHandler implements WebSocket.Listener, WebSocketConnection {
     // use StringBuffer over StringBuilder for thread safety
     private final StringBuffer accumulatedText = new StringBuffer();
     private final CompletableFuture<Optional<Throwable>> closeFuture = new CompletableFuture<>();
     private final AtomicReference<WebSocket> ws = new AtomicReference<>();
     private final Broker broker;
 
-    public WebSocketListener(Broker broker) {
+    public WebSocketHandler(Broker broker) {
         this.broker = broker;
     }
 
@@ -36,13 +38,13 @@ public class WebSocketListener implements WebSocket.Listener, WebSocketConnectio
     @Override
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
         accumulatedText.append(data);
-        log.trace("WebSocketListener.onText, last=" + last + ", " + accumulatedText);
+        log.debug("WebSocketListener.onText, last=" + last + ", " + accumulatedText);
         if (last) {
             final String response;
             try {
                 response = broker.handleJsonRPC(accumulatedText.toString());
                 if (response != null) {
-                    log.trace("WebSocketListener.sendText, response=" + response);
+                    log.debug("WebSocketListener.sendText, response=" + response.substring(0, min(200, response.length())));
                     webSocket.sendText(response, true);
                 }
             } catch (Exception e) {

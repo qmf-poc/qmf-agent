@@ -1,6 +1,9 @@
 package qmf.poc.agent.broker;
 
+import org.apache.commons.cli.ParseException;
 import org.junit.jupiter.api.Test;
+import qmf.poc.agent.Args;
+import qmf.poc.agent.catalog.CatalogProvider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -13,8 +16,9 @@ public class BrokerTest {
         // Act
         final String pong = broker.handleJsonRPC(pingJsonRPC);
         // Assert
-        assertEquals("{\"result\":{\"payload\":\"pong: pl\"},\"id\":1,\"jsonrpc\":\"2.0\"}",pong);
+        assertEquals("{\"result\":{\"payload\":\"pong: pl\"},\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
     }
+
     @Test
     public void testPingEmptyParams() {
         // Arrange
@@ -23,8 +27,9 @@ public class BrokerTest {
         // Act
         final String pong = broker.handleJsonRPC(pingJsonRPC);
         // Assert
-        assertEquals("{\"result\":{\"payload\":\"pong: null\"},\"id\":1,\"jsonrpc\":\"2.0\"}",pong);
+        assertEquals("{\"result\":{\"payload\":\"pong: null\"},\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
     }
+
     @Test
     public void testPingNoParams() {
         // Arrange
@@ -33,6 +38,18 @@ public class BrokerTest {
         // Act
         final String pong = broker.handleJsonRPC(pingJsonRPC);
         // Assert
-        assertEquals("{\"result\":{\"payload\":\"pong: null\"},\"id\":1,\"jsonrpc\":\"2.0\"}",pong);
+        assertEquals("{\"result\":{\"payload\":\"pong: null\"},\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
+    }
+
+    @Test
+    public void testCatalog() throws ParseException {
+        // Arrange
+        final Broker broker = new Broker(new CatalogProvider(new Args(new String[0])));
+        final String pingSnapshot = "{\"jsonrpc\":\"2.0\",\"method\":\"snapshot\",\"id\":1}";
+        // Act
+        final String catalog = broker.handleJsonRPC(pingSnapshot);
+        // Assert
+        final String beg = "{\"result\":{\"objectData\":[{\"owner\":";
+        assertEquals(beg, catalog.substring(0, beg.length()));
     }
 }
