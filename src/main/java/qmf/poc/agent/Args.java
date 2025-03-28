@@ -16,6 +16,7 @@ public class Args {
     public final boolean parallel;
     public final boolean printHelp;
     public final boolean printCatalog;
+    public final boolean runQMFObject;
     public final int repeat;
     public final URI serviceUri;
     public final boolean connectToService;
@@ -25,6 +26,7 @@ public class Args {
     public final String qmfPassword;
     public final String qmfDatasource;
     public final String qmfFolder;
+    public final String qmfRun;
 
     public Args(String[] args) throws ParseException {
         syntax = "java -jar agent-[version].jar";
@@ -61,6 +63,8 @@ public class Args {
         qmfPassword = getOptionValue(cmd, QMF_PASSWORD, "password");
         qmfDatasource = getOptionValue(cmd, QMF_DATASOURCE, "Test1 ds");
         qmfFolder = getOptionValue(cmd, QMF_FOLDER, System.getProperty("user.home") + "/Application Data/IBM/QMF for WebSphere");
+        qmfRun = getOptionValue(cmd, QMF_RUN, null);
+        runQMFObject = qmfRun != null;
     }
 
     public void printHelp() {
@@ -101,6 +105,7 @@ public class Args {
         options.addOption("n", REPEAT, true, "repeat operation");
         options.addOption("p", DB2PASSWORD, true, "db2 password");
         options.addOption("q", QMF_FOLDER, true, "qmf folder, usually ~/Application Data/IBM/QMF for WebSphere");
+        options.addOption("r", QMF_RUN, true, "executes qmf object, --run owner,name");
         options.addOption("s", DB2CS, true, "db2 connection string: jdbc:db2://host:port/db");
         options.addOption("u", DB2USER, true, "db2 user");
         options.addOption("v", VERSION, false, "print version");
@@ -126,6 +131,7 @@ public class Args {
     private static final String QMF_PASSWORD = "qmf-password";
     private static final String QMF_DATASOURCE = "qmf-datasource";
     private static final String QMF_FOLDER = "qmf-folder";
+    private static final String QMF_RUN = "qmf-run";
 
     private static final String DEFAULT_URI = "ws://localhost:8081/agent";
 }

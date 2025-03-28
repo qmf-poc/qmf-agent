@@ -34,7 +34,8 @@ public class WebSockerProvider implements Closeable {
         executor.shutdown();
     }
 
-
+    // Connects to the given URI and returns a WebSocketConnection
+    // which exposes a listen() method to wait for incoming messages
     private WebSocketConnection getConnection(URI uri) throws CompletionException {
         log.debug("Connecting to " + uri + "...");
         final WebSocketHandler listener = new WebSocketHandler(broker);
@@ -44,6 +45,7 @@ public class WebSockerProvider implements Closeable {
         return listener;
     }
 
+    // Loops getConnection() until interrupted
     public static void listen(Args args, Broker broker) {
         log.info("Websocket start listening to " + args.serviceUri);
         try (final WebSockerProvider webSockerProvider = new WebSockerProvider(broker)) {

@@ -66,5 +66,21 @@ public class QMFObjectRunner {
         }
     }
 
+    public static void runQMFObject(Args args) {
+        String[] run = args.qmfRun.split(",");
+        if (run.length != 2) {
+            log.error("Invalid run parameter: " + args.qmfRun+", expected <owner>,<name>");
+        }
+        try {
+            QMFObjectRunner qmfObjectRunner = new QMFObjectRunner(args);
+            String owner = run[0];
+            String name = run[1];
+            String format = "html";
+            String result = qmfObjectRunner.retrieveObjectHTML(owner, name, format);
+            System.out.println(result);
+        } catch (Exception e) {
+            log.error("Failed to run QMF object", e);
+        }
+    }
     private static final Log log = LogFactory.getLog("agent");
 }
