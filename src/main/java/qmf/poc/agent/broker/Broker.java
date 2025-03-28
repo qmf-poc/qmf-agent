@@ -7,15 +7,11 @@ import qmf.poc.agent.catalog.models.Catalog;
 import qmf.poc.agent.jsonrpc.JsonRpc;
 
 import java.text.ParseException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static java.lang.Math.min;
 
 public class Broker {
-    private final ConcurrentHashMap<Double, CompletableFuture<Double>> pendingRequests = new ConcurrentHashMap<>();
     private final CatalogProvider catalogProvider;
     private final JsonRpc jsonRpc = new JsonRpc();
 
@@ -31,7 +27,7 @@ public class Broker {
         return jsonRpc.formatResult(id, result);
     }
 
-    private String handleSnapshot(Integer id, Map<String, Object> json) {
+    private String handleSnapshot(Integer id) {
         log.debug("method: snapshot, id=" + id);
         // TODO: handle error
         final Catalog catalog = catalogProvider.catalogParallel().join();
@@ -72,7 +68,7 @@ public class Broker {
             case "ping":
                 return handlePing(id, getParams(json));
             case "snapshot":
-                return handleSnapshot(id, getParams(json));
+                return handleSnapshot(id);
             default:
                 throw new ParseException("Unknown method: " + method, 0);
         }
