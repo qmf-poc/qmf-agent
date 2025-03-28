@@ -14,7 +14,29 @@
         <slf4j.version>2.0.17</slf4j.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>lib-maven-repo</id>
+            <url>file:///${project.basedir}/lib</url>
+        </repository>
+    </repositories>
+
     <dependencies>
+        <dependency>
+            <groupId>s4y.solutions</groupId>
+            <artifactId>js</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>s4y.solutions</groupId>
+            <artifactId>DynamicPDF</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>s4y.solutions</groupId>
+            <artifactId>QMFLib</artifactId>
+            <version>1.0.0</version>
+        </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
@@ -116,6 +138,18 @@
                                 <goals>
                                     <goal>shade</goal>
                                 </goals>
+                                <configuration>
+                                    <filters>
+                                        <filter>
+                                            <artifact>*:*</artifact>
+                                            <excludes>
+                                                <exclude>META-INF/*.SF</exclude>
+                                                <exclude>META-INF/*.DSA</exclude>
+                                                <exclude>META-INF/*.RSA</exclude>
+                                            </excludes>
+                                        </filter>
+                                    </filters>
+                                </configuration>
                             </execution>
                         </executions>
                         <configuration>

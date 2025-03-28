@@ -20,6 +20,11 @@ public class Args {
     public final URI serviceUri;
     public final boolean connectToService;
     public final boolean printVersion;
+    public final String qmfConnection;
+    public final String qmfUser;
+    public final String qmfPassword;
+    public final String qmfDatasource;
+    public final String qmfFolder;
 
     public Args(String[] args) throws ParseException {
         syntax = "java -jar agent-[version].jar";
@@ -51,6 +56,11 @@ public class Args {
         } catch (NumberFormatException e) {
             throw new ParseException(e.getMessage());
         }
+        qmfConnection = getOptionValue(cmd, QMF_CONNECTION, "Connection to Test 1");
+        qmfUser = getOptionValue(cmd, QMF_USER, "admin");
+        qmfPassword = getOptionValue(cmd, QMF_PASSWORD, "password");
+        qmfDatasource = getOptionValue(cmd, QMF_DATASOURCE, "Test1 ds");
+        qmfFolder = getOptionValue(cmd, QMF_FOLDER, System.getProperty("user.home") + "/Application Data/IBM/QMF for WebSphere");
     }
 
     public void printHelp() {
@@ -81,11 +91,16 @@ public class Args {
         final Options options = new Options();
         options.addOption("a", AGENT_MODE, false, "agent mode. Shorthand for -w " + DEFAULT_URI);
         options.addOption("c", CHARSET, true, "charset for long data, default UTF-8");
-        options.addOption("h", HELP, false, "Show help");
+        options.addOption("e", QMF_CONNECTION, true, "QMF connection");
         options.addOption("g", PRINT_CATALOG, false, "Fetch catalog and print");
+        options.addOption("h", HELP, false, "Show help");
+        options.addOption("i", QMF_USER, true, "QMF user");
+        options.addOption("j", QMF_PASSWORD, true, "QMF password");
+        options.addOption("k", QMF_DATASOURCE, true, "QMF datasource");
         options.addOption("l", PARALLEL, false, "use parallel threads");
         options.addOption("n", REPEAT, true, "repeat operation");
         options.addOption("p", DB2PASSWORD, true, "db2 password");
+        options.addOption("q", QMF_FOLDER, true, "qmf folder, usually ~/Application Data/IBM/QMF for WebSphere");
         options.addOption("s", DB2CS, true, "db2 connection string: jdbc:db2://host:port/db");
         options.addOption("u", DB2USER, true, "db2 user");
         options.addOption("v", VERSION, false, "print version");
@@ -106,6 +121,11 @@ public class Args {
     private static final String PRINT_CATALOG = "print-catalog";
     private static final String PARALLEL = "parallel";
     private static final String WEBSOCKET_URI = "websocket-uri";
+    private static final String QMF_CONNECTION = "qmf-connection";
+    private static final String QMF_USER = "qmf-user";
+    private static final String QMF_PASSWORD = "qmf-password";
+    private static final String QMF_DATASOURCE = "qmf-datasource";
+    private static final String QMF_FOLDER = "qmf-folder";
 
     private static final String DEFAULT_URI = "ws://localhost:8081/agent";
 }
