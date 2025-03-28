@@ -26,17 +26,17 @@ public class Args {
         final CommandLineParser parser = new DefaultParser();
         final CommandLine cmd = parser.parse(getOptions(), args);
 
-        db2cs = cmd.getOptionValue("db2cs", "jdbc:db2://qmfdb2.s4y.solutions:50000/sample");
-        db2user = cmd.getOptionValue("db2user", "db2inst1");
-        db2password = cmd.getOptionValue("db2password", "password");
-        db2charsetName = cmd.getOptionValue("charset", "UTF-8");
-        parallel = cmd.hasOption("parallel");
-        printHelp = cmd.hasOption("help");
-        printVersion = cmd.hasOption("version");
-        printCatalog = cmd.hasOption("print-catalog");
-        if (cmd.hasOption("websocket-uri")) {
+        db2cs = getOptionValue(cmd, DB2CS, "jdbc:db2://qmfdb2.s4y.solutions:50000/sample");
+        db2user = getOptionValue(cmd, DB2USER, "db2inst1");
+        db2password = getOptionValue(cmd, DB2PASSWORD, "password");
+        db2charsetName = getOptionValue(cmd, CHARSET, "UTF-8");
+        parallel = hasOption(cmd, PARALLEL);
+        printHelp = hasOption(cmd, HELP);
+        printVersion = hasOption(cmd, VERSION);
+        printCatalog = hasOption(cmd, PRINT_CATALOG);
+        if (hasOption(cmd, WEBSOCKET_URI)) {
             try {
-                serviceUri = URI.create(cmd.getOptionValue("websocket-uri"));
+                serviceUri = URI.create(getOptionValue(cmd, WEBSOCKET_URI, "ws://localhost:8080"));
             } catch (Exception e) {
                 throw new ParseException(e.getMessage());
             }
@@ -45,7 +45,7 @@ public class Args {
         }
         connectToService = serviceUri != null;
         try {
-            repeat = Integer.parseInt(cmd.getOptionValue("repeat", "1"));
+            repeat = Integer.parseInt(cmd.getOptionValue(REPEAT, "1"));
         } catch (NumberFormatException e) {
             throw new ParseException(e.getMessage());
         }
@@ -58,21 +58,48 @@ public class Args {
         System.out.println("-Dorg.slf4j.simpleLogger.defaultLogLevel=TRACE|DEBUG|INFO|WARN|ERROR");
     }
 
+    private String getOptionValue(CommandLine cmd, String option, String defaultValue) {
+        String arg = cmd.getOptionValue(option, null);
+        if (arg == null) {
+            arg = System.getenv(option.toUpperCase().replace('-', '_'));
+        }
+        if (arg == null) {
+            arg = defaultValue;
+        }
+        return arg;
+    }
+
+    private Boolean hasOption(CommandLine cmd, String option) {
+        if (cmd.hasOption(option))
+            return true;
+        return System.getenv(option.toUpperCase().replace('-', '_')) != null;
+    }
+
     private static Options getOptions() {
         final Options options = new Options();
-        options.addOption("c", "charset", true, "charset for long data, default UTF-8");
-        options.addOption("h", "help", false, "Show help");
-        options.addOption("g", "print-catalog", false, "Fetch catalog and print");
-        options.addOption("l", "parallel", false, "use parallel threads");
-        options.addOption("n", "repeat", true, "repeat operation");
-        options.addOption("p", "db2password", true, "db2 password");
-        options.addOption("s", "db2cs", true, "db2 connection string: jdbc:db2://host:port/db");
-        options.addOption("u", "db2user", true, "db2 user");
-        options.addOption("v", "version", false, "print version");
-        options.addOption("w", "websocket-uri", true, "service websocket uri");
+        options.addOption("c", CHARSET, true, "charset for long data, default UTF-8");
+        options.addOption("h", HELP, false, "Show help");
+        options.addOption("g", PRINT_CATALOG, false, "Fetch catalog and print");
+        options.addOption("l", PARALLEL, false, "use parallel threads");
+        options.addOption("n", REPEAT, true, "repeat operation");
+        options.addOption("p", DB2PASSWORD, true, "db2 password");
+        options.addOption("s", DB2CS, true, "db2 connection string: jdbc:db2://host:port/db");
+        options.addOption("u", DB2USER, true, "db2 user");
+        options.addOption("v", VERSION, false, "print version");
+        options.addOption("w", WEBSOCKET_URI, true, "service websocket uri");
         return options;
     }
 
     @SuppressWarnings("unused")
     private static final Log log = LogFactory.getLog("agent");
+    private static final String CHARSET = "charset";
+    private static final String HELP = "help";
+    private static final String VERSION = "version";
+    private static final String REPEAT = "repeat";
+    private static final String DB2CS = "db2cs";
+    private static final String DB2USER = "db2user";
+    private static final String DB2PASSWORD = "db2password";
+    private static final String PRINT_CATALOG = "print-catalog";
+    private static final String PARALLEL = "parallel";
+    private static final String WEBSOCKET_URI = "websocket-uri";
 }
