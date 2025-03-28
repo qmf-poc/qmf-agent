@@ -40,11 +40,12 @@ public class WebSockerProvider implements Closeable {
         final WebSocketListener listener = new WebSocketListener(broker);
         final CompletableFuture<WebSocket> future = client.newWebSocketBuilder().buildAsync(uri, listener);
         future.join();
-        log.debug("Connecting to "+ uri+ " done");
+        log.debug("Connecting to " + uri + " done");
         return listener;
     }
 
     public static void listen(Args args, Broker broker) {
+        log.info("Websocket start listening to " + args.serviceUri);
         try (final WebSockerProvider webSockerProvider = new WebSockerProvider(broker)) {
             boolean exit = false;
             while (!exit && !Thread.currentThread().isInterrupted()) {
@@ -71,6 +72,8 @@ public class WebSockerProvider implements Closeable {
         } catch (InterruptedException e) {
             log.warn("Unhandled interrupted exception");
             // throw new RuntimeException(e);
+        } finally {
+            log.info("Websocket stop listening to " + args.serviceUri);
         }
     }
 

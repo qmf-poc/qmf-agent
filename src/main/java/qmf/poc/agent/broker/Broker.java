@@ -1,9 +1,10 @@
 package qmf.poc.agent.broker;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import qmf.poc.agent.catalog.CatalogProvider;
+import qmf.poc.agent.catalog.models.Catalog;
+import qmf.poc.agent.jsonrpc.JsonRpc;
 
 import java.text.ParseException;
 import java.util.HashMap;
@@ -12,11 +13,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Broker {
-    private ConcurrentHashMap<Double, CompletableFuture<Double>> pendingRequests = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Double, CompletableFuture<Double>> pendingRequests = new ConcurrentHashMap<>();
+    private final CatalogProvider catalogProvider;
+    private final JsonRpc jsonRpc = new JsonRpc();
+
+    public Broker(CatalogProvider catalogProvider) {
+        this.catalogProvider = catalogProvider;
+    }
 
     public String handleJsonRPC(String message) {
         try {
-            final Map<String, Object> json = messageToJSON(message);
+            final Map<String, Object> json = jsonRpc.parse(message);
             final Double id = (Double) json.get("id");
             try {
                 if (json.containsKey("method")) {
@@ -28,11 +35,11 @@ public class Broker {
                 }
             } catch (Exception e) {
                 log.warn("Failed to handle JSON-RPC message", e);
-                return errorJson(id, 2, e.getMessage());
+                return jsonRpc.formatError(id, 2, e.getMessage());
             }
         } catch (Exception e) {
             log.warn("Failed to parse JSON-RPC message", e);
-            return errorJson(null, 1, e.getMessage());
+            return jsonRpc.formatError(null, 1, e.getMessage());
         }
     }
 
@@ -40,48 +47,40 @@ public class Broker {
         final String method = (String) json.get("method");
         switch (method) {
             case "ping":
-                return handlePing(id, json);
+                return handlePing(id, getParams(json));
+            case "snapshot":
+                return handleSnapshot(id, getParams(json));
             default:
                 throw new ParseException("Unknown method: " + method, 0);
         }
     }
 
-    private String handlePing(Double id, Map<String, Object> json) {
-        final String payload = (String) json.get("params");
-        return responseJson(id, payload);
+    private Map<String, Object> getParams(Map<String, Object> json) {
+        final Object paramsObj = json.get("params");
+        if (paramsObj == null)
+            return Map.of();
+        if (paramsObj instanceof Map)
+            //noinspection unchecked
+            return (Map<String, Object>) paramsObj;
+        return Map.of();
     }
 
-    private String handleResult(Double id, Map<String, Object> json) {
-        return "result";
+    private String handlePing(Double id, Map<String, Object> params) {
+        /*
+        final Map<String, String> result = new HashMap<>();
+        result.put("payload", "pong: " + (params.get("payload") == null ? "null" : params.get("payload").toString()));
+         */
+        String result = params.get("payload") == null ? "null" : params.get("payload").toString();
+        return jsonRpc.formatResult(id, result);
     }
 
-    private Map<String, Object> messageToJSON(String message) {
-        return parseJson(message);
+    private String handleSnapshot(Double id, Map<String, Object> json) {
+        final Catalog catalog = catalogProvider.catalogParallel().join();
+        return jsonRpc.formatResult(id, catalog);
     }
 
-    ;
-
-    private final static Gson gson = new Gson();
-
-    private static Map<String, Object> parseJson(String json) {
-        return gson.fromJson(json, new TypeToken<Map<String, Object>>() {
-        }.getType());
-    }
-
-    private static String responseJson(Double id, String result) {
-        final Map<String, Object> response = new HashMap<>();
-        response.put("jsonrpc", "2.0");
-        response.put("id", id);
-        response.put("result", result);
-        return gson.toJson(response);
-    }
-
-    private static String errorJson(Double id, int code, String message) {
-        final Map<String, Object> response = Map.of(
-                "jsonrpc", "2.0",
-                "id", id,
-                "error", Map.of("code", code, "message", message));
-        return gson.toJson(response);
+    private String handleResult(Double ignoredId, Map<String, Object> ignoredJson) {
+        return null;
     }
 
     private static final Log log = LogFactory.getLog("agent");

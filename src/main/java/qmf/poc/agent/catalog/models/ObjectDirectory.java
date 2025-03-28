@@ -1,16 +1,16 @@
 package qmf.poc.agent.catalog.models;
 
 public class ObjectDirectory {
-    final String owner;
-    final String name;
-    final String type;
-    final String subType;
-    final int objectLevel;
-    final String restricted;
-    final String model;
-    final String created;
-    final String modified;
-    final String lastUsed;
+    public final String owner;
+    public final String name;
+    public final String type;
+    public final String subType;
+    public final int objectLevel;
+    public final String restricted;
+    public final String model;
+    public final String created;
+    public final String modified;
+    public final String lastUsed;
 
     public ObjectDirectory(String owner, String name, String type, String subType, int objectLevel,
                            String restricted, String model, String created, String modified, String lastUsed) {

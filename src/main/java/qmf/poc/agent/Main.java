@@ -16,7 +16,7 @@ public class Main {
             if (args.printHelp) args.printHelp();
             if (args.printCatalog) CatalogProvider.printCatalog(args);
             if (args.printVersion) System.out.println("agent-0.0.1");
-            if (args.connectToService) WebSockerProvider.listen(args, new Broker());
+            if (args.connectToService) WebSockerProvider.listen(args, new Broker(new CatalogProvider(args)));
 
         } catch (ParseException e) {
             System.err.println(e.getMessage());

@@ -31,9 +31,9 @@ public class CatalogProvider implements Closeable {
     private final Charset charset;
     private final ExecutorService dbExecutor;
 
-    public CatalogProvider(String db2sc, String user, String password, String charsetName, boolean parallelEnabled) {
+    public CatalogProvider(String db2sc, String user, String password, String charsetName) {
         charset = Charset.forName(charsetName);
-        dbExecutor = parallelEnabled ? Executors.newFixedThreadPool(4) : null;
+        dbExecutor = Executors.newFixedThreadPool(4);
         final Properties props = new Properties();
         props.put("user", user);
         props.put("password", password);
@@ -53,8 +53,7 @@ public class CatalogProvider implements Closeable {
                 args.db2cs,
                 args.db2user,
                 args.db2password,
-                args.db2charsetName,
-                args.parallel);
+                args.db2charsetName);
     }
 
     public List<ObjectData> objectDataList() throws SQLException {
@@ -175,7 +174,7 @@ public class CatalogProvider implements Closeable {
         return new Catalog(objectDataList, objectRemarksList, objectDirectoryList);
     }
 
-    public CompletableFuture<Catalog> catalogAsync() {
+    public CompletableFuture<Catalog> catalogParallel() {
         CompletableFuture<List<ObjectData>> objectDataFuture = objectDataListAsync();
         CompletableFuture<List<ObjectRemarks>> objectRemarksFuture = objectRemarksListAsync();
         CompletableFuture<List<ObjectDirectory>> objectDirectoryFuture = objectDirectoryListAsync();
@@ -186,6 +185,21 @@ public class CatalogProvider implements Closeable {
                         objectRemarksFuture.join(),
                         objectDirectoryFuture.join()
                 ));
+    }
+
+    public CompletableFuture<Catalog> catalogPreferParallel() {
+        if (parallelEnabled()) {
+            return catalogParallel();
+        } else {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    return catalog();
+                } catch (SQLException e) {
+                    log.error("Error fetching catalog", e);
+                    return new Catalog(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+                }
+            }, dbExecutor);
+        }
     }
 
     public boolean parallelEnabled() {
@@ -226,7 +240,7 @@ public class CatalogProvider implements Closeable {
                 }
                 if (provider.parallelEnabled()) {
                     log.debug("parallel fetch: " + i);
-                    final CompletableFuture<Catalog> catalogFuture = provider.catalogAsync();
+                    final CompletableFuture<Catalog> catalogFuture = provider.catalogParallel();
                     final Catalog catalog = catalogFuture.join();
                     System.out.println(catalog.toString());
                 } else {

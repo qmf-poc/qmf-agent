@@ -41,8 +41,10 @@ public class WebSocketListener implements WebSocket.Listener, WebSocketConnectio
             final String response;
             try {
                 response = broker.handleJsonRPC(accumulatedText.toString());
-                if (response != null)
+                if (response != null) {
+                    log.trace("WebSocketListener.sendText, response=" + response);
                     webSocket.sendText(response, true);
+                }
             } catch (Exception e) {
                 log.warn("Failed to parse JSON-RPC message", e);
             }

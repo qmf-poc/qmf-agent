@@ -1,10 +1,10 @@
 package qmf.poc.agent.catalog.models;
 
 public class ObjectData {
-    final String owner;
-    final String name;
-    final String type;
-    final String appldata;
+    public final String owner;
+    public final String name;
+    public final String type;
+    public final String appldata;
 
     public ObjectData(String owner, String name, String type, String appldata) {
         this.owner = owner;

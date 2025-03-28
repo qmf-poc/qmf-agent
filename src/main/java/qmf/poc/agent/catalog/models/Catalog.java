@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Catalog {
-    final List<ObjectData> objectData;
-    final List<ObjectRemarks> objectRemarks;
-    final List<ObjectDirectory> objectDirectories;
+    public final List<ObjectData> objectData;
+    public final List<ObjectRemarks> objectRemarks;
+    public final List<ObjectDirectory> objectDirectories;
 
     public Catalog(List<ObjectData> objectData, List<ObjectRemarks> objectRemarks, List<ObjectDirectory> objectDirectories) {
         this.objectData = objectData;
