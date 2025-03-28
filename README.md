@@ -10,6 +10,11 @@ for each `file.jar` and corresponding `artifactId`:
 mvn install:install-file -Dfile=path/to/file.jar -DgroupId=s4y.solutions -DartifactId=file -Dversion=1.0.0 -Dpackaging=jar -DlocalRepositoryPath=lib
 ```
 
+and after all the jars added
+```shell
+ mvn package -U
+```
+
 ```shell
 mvn package
 ```
