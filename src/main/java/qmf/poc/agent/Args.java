@@ -41,7 +41,7 @@ public class Args {
                 throw new ParseException(e.getMessage());
             }
         } else if (hasOption(cmd, AGENT_MODE)) {
-            serviceUri = URI.create("ws://localhost:8080");
+            serviceUri = URI.create(DEFAULT_URI);
         } else {
             serviceUri = null;
         }
@@ -79,7 +79,7 @@ public class Args {
 
     private static Options getOptions() {
         final Options options = new Options();
-        options.addOption("a", AGENT_MODE, false, "agent mode. Shorthand for -w ws://localhost:8081/agent");
+        options.addOption("a", AGENT_MODE, false, "agent mode. Shorthand for -w " + DEFAULT_URI);
         options.addOption("c", CHARSET, true, "charset for long data, default UTF-8");
         options.addOption("h", HELP, false, "Show help");
         options.addOption("g", PRINT_CATALOG, false, "Fetch catalog and print");
@@ -106,4 +106,6 @@ public class Args {
     private static final String PRINT_CATALOG = "print-catalog";
     private static final String PARALLEL = "parallel";
     private static final String WEBSOCKET_URI = "websocket-uri";
+
+    private static final String DEFAULT_URI = "ws://localhost:8081/agent";
 }
