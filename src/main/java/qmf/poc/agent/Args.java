@@ -36,10 +36,12 @@ public class Args {
         printCatalog = hasOption(cmd, PRINT_CATALOG);
         if (hasOption(cmd, WEBSOCKET_URI)) {
             try {
-                serviceUri = URI.create(getOptionValue(cmd, WEBSOCKET_URI, "ws://localhost:8080"));
+                serviceUri = new URI(getOptionValue(cmd, WEBSOCKET_URI, ""));
             } catch (Exception e) {
                 throw new ParseException(e.getMessage());
             }
+        } else if (hasOption(cmd, AGENT_MODE)) {
+            serviceUri = URI.create("ws://localhost:8080");
         } else {
             serviceUri = null;
         }
@@ -77,6 +79,7 @@ public class Args {
 
     private static Options getOptions() {
         final Options options = new Options();
+        options.addOption("a", AGENT_MODE, false, "agent mode. Shorthand for -w ws://localhost:8081/agent");
         options.addOption("c", CHARSET, true, "charset for long data, default UTF-8");
         options.addOption("h", HELP, false, "Show help");
         options.addOption("g", PRINT_CATALOG, false, "Fetch catalog and print");
@@ -86,12 +89,13 @@ public class Args {
         options.addOption("s", DB2CS, true, "db2 connection string: jdbc:db2://host:port/db");
         options.addOption("u", DB2USER, true, "db2 user");
         options.addOption("v", VERSION, false, "print version");
-        options.addOption("w", WEBSOCKET_URI, true, "service websocket uri");
+        options.addOption("w", WEBSOCKET_URI, true, "service websocket uri: [ws://]host:port[/path]");
         return options;
     }
 
     @SuppressWarnings("unused")
     private static final Log log = LogFactory.getLog("agent");
+    private static final String AGENT_MODE = "agent";
     private static final String CHARSET = "charset";
     private static final String HELP = "help";
     private static final String VERSION = "version";
