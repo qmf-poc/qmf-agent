@@ -16,7 +16,7 @@ public class BrokerTest {
         // Act
         final String pong = broker.handleJsonRPC(pingJsonRPC);
         // Assert
-        assertEquals("{\"result\":{\"payload\":\"pong: pl\"},\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
+        assertEquals("{\"result\":\"pong: pl\",\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
     }
 
     @Test
@@ -27,7 +27,7 @@ public class BrokerTest {
         // Act
         final String pong = broker.handleJsonRPC(pingJsonRPC);
         // Assert
-        assertEquals("{\"result\":{\"payload\":\"pong: null\"},\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
+        assertEquals("{\"result\":\"pong: null\",\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
     }
 
     @Test
@@ -38,7 +38,7 @@ public class BrokerTest {
         // Act
         final String pong = broker.handleJsonRPC(pingJsonRPC);
         // Assert
-        assertEquals("{\"result\":{\"payload\":\"pong: null\"},\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
+        assertEquals( "{\"result\":\"pong: null\",\"id\":1,\"jsonrpc\":\"2.0\"}", pong);
     }
 
     @Test
@@ -49,7 +49,7 @@ public class BrokerTest {
         // Act
         final String catalog = broker.handleJsonRPC(pingSnapshot);
         // Assert
-        final String beg = "{\"result\":{\"objectData\":[{\"owner\":";
+        final String beg = "{\"result\":{\"catalog\":{\"objectData\"";
         assertEquals(beg, catalog.substring(0, beg.length()));
     }
 }
