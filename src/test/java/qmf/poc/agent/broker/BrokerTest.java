@@ -49,7 +49,7 @@ public class BrokerTest {
         // Act
         final String catalog = broker.handleJsonRPC(pingSnapshot);
         // Assert
-        final String beg = "{\"result\":{\"catalog\":{\"objectData\"";
+        final String beg = "{\"result\":{\"catalog\":{\"qmfObjects\":[";
         assertEquals(beg, catalog.substring(0, beg.length()));
     }
 }

@@ -6,10 +6,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import qmf.poc.agent.Args;
-import qmf.poc.agent.catalog.models.Catalog;
-import qmf.poc.agent.catalog.models.ObjectData;
-import qmf.poc.agent.catalog.models.ObjectDirectory;
-import qmf.poc.agent.catalog.models.ObjectRemarks;
+import qmf.poc.agent.catalog.models.*;
 
 import javax.sql.DataSource;
 import java.io.Closeable;
@@ -56,52 +53,17 @@ public class CatalogProvider implements Closeable {
                 args.db2charsetName);
     }
 
-    public List<ObjectData> objectDataList() throws SQLException {
-        List<ObjectData> result = new ArrayList<>();
-        log.trace("objectDataList.getConnection...");
-        try (final Connection connection = dataSource.getConnection();
-             final Statement stmt = connection.createStatement();
-             final ResultSet row = stmt.executeQuery(QUERY_DATA)) {
-            log.trace("objectDataList.iterate");
-            int count = 0;
-            while (row.next()) {
-                log.trace("objectDataList.iterate: " + ++count);
-                final String owner = row.getString("OWNER");
-                final String name = row.getString("NAME");
-                final String type = row.getString("TYPE");
-                final byte[] applDataBinary = row.getBytes("CONCATENATED_APPLDATA");
-                final String concatenatedApplData = new String(applDataBinary, charset); // TODO: should be handled by JDBC
-
-                final ObjectData objectData = new ObjectData(owner, name, type, concatenatedApplData);
-                result.add(objectData);
-            }
-            log.trace("objectDataList.done: " + count);
-        }
-        return result;
-    }
-
-    public CompletableFuture<List<ObjectData>> objectDataListAsync() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return objectDataList(); // Call the blocking method safely
-            } catch (SQLException e) {
-                log.error("Error fetching object data", e);
-                return Collections.emptyList(); // Return empty list on failure
-            }
-        }, dbExecutor);
-    }
-
-    public List<ObjectDirectory> objectDirectoryList() throws SQLException {
-        final List<ObjectDirectory> result = new ArrayList<>();
-        log.trace("objectDirectoryList.getConnection...");
+    public List<QMFObject> objectsList() throws SQLException {
+        final List<QMFObject> result = new ArrayList<>();
+        log.trace("objectsList.getConnection...");
         try (
                 final Connection connection = dataSource.getConnection();
                 final Statement stmt = connection.createStatement();
-                final ResultSet row = stmt.executeQuery(QUERY_DIRECTORY)) {
-            log.trace("objectDirectoryList.iterate");
+                final ResultSet row = stmt.executeQuery(QUERY_OBJECT)) {
+            log.trace("objectsList.iterate");
             int count = 0;
             while (row.next()) {
-                log.trace("objectDirectoryList.iterate: " + ++count);
+                log.trace("objectsList.iterate: " + ++count);
                 final String owner = row.getString("OWNER");
                 final String name = row.getString("NAME");
                 final String type = row.getString("TYPE");
@@ -112,111 +74,22 @@ public class CatalogProvider implements Closeable {
                 final String created = row.getString("CREATED");
                 final String modified = row.getString("MODIFIED");
                 final String lastUsed = row.getString("LAST_USED");
-
-                final ObjectDirectory objectDirectory = new ObjectDirectory(owner, name, type, subType, objectLevel, restricted, model, created, modified, lastUsed);
-                result.add(objectDirectory);
-            }
-            log.trace("objectDirectoryList.done: " + count);
-        }
-        return result;
-    }
-
-    public CompletableFuture<List<ObjectRemarks>> objectRemarksListAsync() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return objectRemarksList();
-            } catch (SQLException e) {
-                log.error("Error fetching object remarks", e);
-                return Collections.emptyList();
-            }
-        }, dbExecutor);
-    }
-
-    public List<ObjectRemarks> objectRemarksList() throws SQLException {
-        List<ObjectRemarks> result = new ArrayList<>();
-        log.trace("objectRemarksList.getConnection...");
-        try (
-                final Connection connection = dataSource.getConnection();
-                final Statement stmt = connection.createStatement();
-                final ResultSet row = stmt.executeQuery(QUERY_REMARKS)) {
-            log.trace("objectRemarksList.iterate");
-            int count = 0;
-            while (row.next()) {
-                log.trace("objectRemarksList.iterate: " + ++count);
-                final String owner = row.getString("OWNER");
-                final String name = row.getString("NAME");
-                final String type = row.getString("TYPE");
+                final byte[] applDataBinary = row.getBytes("CONCATENATED_APPLDATA");
+                final String concatenatedApplData = new String(applDataBinary, charset); // TODO: should be handled by JDBC
                 final String remarks = row.getString("REMARKS");
 
-                final ObjectRemarks objectRemarks = new ObjectRemarks(owner, name, type, remarks);
-                result.add(objectRemarks);
+                final QMFObject object = new QMFObject(owner, name, type, subType, objectLevel, restricted, model, created, modified, lastUsed, concatenatedApplData, remarks);
+                result.add(object);
             }
-            log.trace("objectRemarksList.done: " + count);
+            log.trace("objectsList.done: " + count);
         }
         return result;
-    }
-
-    public CompletableFuture<List<ObjectDirectory>> objectDirectoryListAsync() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return objectDirectoryList();
-            } catch (SQLException e) {
-                log.error("Error fetching object directories", e);
-                return Collections.emptyList();
-            }
-        }, dbExecutor);
     }
 
     public Catalog catalog() throws SQLException {
-        final List<ObjectData> objectDataList = objectDataList();
-        final List<ObjectRemarks> objectRemarksList = objectRemarksList();
-        final List<ObjectDirectory> objectDirectoryList = objectDirectoryList();
-        return new Catalog(objectDataList, objectRemarksList, objectDirectoryList);
+        final List<QMFObject> objectsList = objectsList();
+        return new Catalog(objectsList);
     }
-
-    public CompletableFuture<Catalog> catalogParallel() {
-        CompletableFuture<List<ObjectData>> objectDataFuture = objectDataListAsync();
-        CompletableFuture<List<ObjectRemarks>> objectRemarksFuture = objectRemarksListAsync();
-        CompletableFuture<List<ObjectDirectory>> objectDirectoryFuture = objectDirectoryListAsync();
-
-        return CompletableFuture.allOf(objectDataFuture, objectRemarksFuture, objectDirectoryFuture)
-                .thenApply(v -> new Catalog(
-                        objectDataFuture.join(),
-                        objectRemarksFuture.join(),
-                        objectDirectoryFuture.join()
-                ));
-    }
-
-    public CompletableFuture<Catalog> catalogPreferParallel() {
-        if (parallelEnabled()) {
-            return catalogParallel();
-        } else {
-            return CompletableFuture.supplyAsync(() -> {
-                try {
-                    return catalog();
-                } catch (SQLException e) {
-                    log.error("Error fetching catalog", e);
-                    return new Catalog(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
-                }
-            }, dbExecutor);
-        }
-    }
-
-    public boolean parallelEnabled() {
-        return dbExecutor != null;
-    }
-
-    private static final String QUERY_DATA = String.join("\n",
-            "SELECT",
-            "  OWNER,",
-            "  NAME,",
-            "  \"TYPE\",",
-            "  LISTAGG(APPLDATA, '') WITHIN GROUP (ORDER BY SEQ) AS CONCATENATED_APPLDATA",
-            "FROM",
-            "  Q.OBJECT_DATA",
-            "GROUP BY",
-            "  OWNER, NAME, \"TYPE\""
-    );
 
     @Override
     public void close() {
@@ -238,14 +111,7 @@ public class CatalogProvider implements Closeable {
                 if (i > 1) {
                     Thread.sleep(1000);
                 }
-                if (provider.parallelEnabled()) {
-                    log.debug("parallel fetch: " + i);
-                    final CompletableFuture<Catalog> catalogFuture = provider.catalogParallel();
-                    final Catalog catalog = catalogFuture.join();
-                    System.out.println(catalog.toString());
-                } else {
-                    System.out.println(provider.catalog().toString());
-                }
+                System.out.println(provider.catalog().toString());
             }
             log.debug("printCatalog.exit");
         } catch (SQLException e) {
@@ -255,9 +121,33 @@ public class CatalogProvider implements Closeable {
         }
     }
 
-    private static final String QUERY_DIRECTORY = "SELECT * FROM Q.OBJECT_DIRECTORY";
-
-    private static final String QUERY_REMARKS = "SELECT * FROM Q.OBJECT_REMARKS OFFSET 1 ROWS FETCH NEXT 335 ROWS ONLY";
+    private static final String QUERY_OBJECT = String.join("\n",
+            "SELECT",
+            "  od.OWNER,",
+            "  od.NAME,",
+            "  od.\"TYPE\",",
+            "  od.CONCATENATED_APPLDATA,",
+            "  or.REMARKS,",
+            "  odir.SUBTYPE,",
+            "  odir.OBJECTLEVEL,",
+            "  odir.RESTRICTED,",
+            "  odir.MODEL,",
+            "  odir.CREATED,",
+            "  odir.MODIFIED,",
+            "  odir.LAST_USED",
+            "FROM",
+            "  (SELECT",
+            "    OWNER,",
+            "    NAME,",
+            "    \"TYPE\",",
+            "    LISTAGG(APPLDATA, '') WITHIN GROUP (ORDER BY SEQ) AS CONCATENATED_APPLDATA",
+            "  FROM",
+            "    Q.OBJECT_DATA",
+            "  GROUP BY",
+            "    OWNER, NAME, \"TYPE\") od",
+            "LEFT OUTER JOIN Q.OBJECT_REMARKS or ON od.OWNER = or.OWNER AND od.NAME = or.NAME AND od.\"TYPE\" = or.\"TYPE\"",
+            "LEFT JOIN Q.OBJECT_DIRECTORY odir ON od.OWNER = odir.OWNER AND od.NAME = odir.NAME AND od.\"TYPE\" = odir.\"TYPE\""
+    );
 
     private static final Log log = LogFactory.getLog("agent");
 

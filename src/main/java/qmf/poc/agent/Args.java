@@ -13,7 +13,6 @@ public class Args {
     public final String db2user;
     public final String db2password;
     public final String db2charsetName;
-    public final boolean parallel;
     public final boolean printHelp;
     public final boolean printCatalog;
     public final boolean runQMFObject;
@@ -37,7 +36,6 @@ public class Args {
         db2user = getOptionValue(cmd, DB2USER, "db2inst1");
         db2password = getOptionValue(cmd, DB2PASSWORD, "password");
         db2charsetName = getOptionValue(cmd, CHARSET, "UTF-8");
-        parallel = hasOption(cmd, PARALLEL);
         printHelp = hasOption(cmd, HELP);
         printVersion = hasOption(cmd, VERSION);
         printCatalog = hasOption(cmd, PRINT_CATALOG);
@@ -101,7 +99,6 @@ public class Args {
         options.addOption("i", QMF_USER, true, "QMF user");
         options.addOption("j", QMF_PASSWORD, true, "QMF password");
         options.addOption("k", QMF_DATASOURCE, true, "QMF datasource");
-        options.addOption("l", PARALLEL, false, "use parallel threads");
         options.addOption("n", REPEAT, true, "repeat operation");
         options.addOption("p", DB2PASSWORD, true, "db2 password");
         options.addOption("q", QMF_FOLDER, true, "qmf folder, usually ~/Application Data/IBM/QMF for WebSphere");
@@ -124,7 +121,6 @@ public class Args {
     private static final String DB2USER = "db2user";
     private static final String DB2PASSWORD = "db2password";
     private static final String PRINT_CATALOG = "print-catalog";
-    private static final String PARALLEL = "parallel";
     private static final String WEBSOCKET_URI = "websocket-uri";
     private static final String QMF_CONNECTION = "qmf-connection";
     private static final String QMF_USER = "qmf-user";

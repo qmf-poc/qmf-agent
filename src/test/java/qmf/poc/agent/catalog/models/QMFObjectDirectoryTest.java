@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class ObjectDirectoryTest {
+public class QMFObjectDirectoryTest {
     @Test
     public void testDeserialize() {
         // Arrange

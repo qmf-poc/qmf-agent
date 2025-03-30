@@ -7,6 +7,7 @@ import qmf.poc.agent.catalog.models.Catalog;
 import qmf.poc.agent.jsonrpc.JsonRpc;
 import qmf.poc.agent.run.QMFObjectRunner;
 
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.Map;
 
@@ -30,10 +31,11 @@ public class Broker {
         return jsonRpc.formatResult(id, result);
     }
 
-    private String handleSnapshot(Integer id) {
+    private String handleSnapshot(Integer id) throws SQLException {
         log.debug("method: snapshot, id=" + id);
         // TODO: handle exception join does not return?
-        final Catalog catalog = catalogProvider.catalogParallel().join();
+        // final Catalog catalog = catalogProvider.catalogParallel().join();
+        final Catalog catalog = catalogProvider.catalog();
         if (log.isDebugEnabled()) {
             String res = catalog.toString();
             log.debug("handled: snapshot, id=" + id + ", result=\"" + res.substring(0, min(200, res.length())) + "\"");

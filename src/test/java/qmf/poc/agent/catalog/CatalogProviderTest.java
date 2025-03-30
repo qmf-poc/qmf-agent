@@ -21,9 +21,12 @@ public class CatalogProviderTest {
             final Catalog catalog = provider.catalog();
             // Assert
             assertNotNull(catalog);
+            assertNotEquals(0, catalog.qmfObjects.size());
+            /*
             assertNotEquals(0, catalog.objectData.size());
             assertNotEquals(0, catalog.objectDirectories.size());
             assertNotEquals(0, catalog.objectRemarks.size());
+             */
         }
     }
 }

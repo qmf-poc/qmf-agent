@@ -11,15 +11,18 @@ public class CatalogTest {
     public void testDeserialize() {
         // Arrange
         final Gson gson = new Gson();
-        final String serializedCatalog = "{\"objectData\":[{\"owner\":\"owner\",\"name\":\"name\",\"type\":\"type\",\"appldata\":\"appldata\"}],\"objectDirectories\":[],\"objectRemarks\":[]}";
+        final String serializedCatalog = "{\"qmfObjects\":[{\"owner\":\"owner\",\"name\":\"name\",\"type\":\"type\",\"appldata\":\"appldata\", \"objectLevel\":1,\"restricted\":\"\",\"model\":\"\",\"created\":\"\",\"modified\":\"\",\"lastUsed\":\".\"}]}";
         // Act
         final Catalog catalog = gson.fromJson(serializedCatalog, Catalog.class);
         // Assert
         assertNotNull(catalog);
+        assertEquals(1, catalog.qmfObjects.size());
+        /*
         assertEquals(1, catalog.objectData.size());
         assertEquals(0, catalog.objectDirectories.size());
         assertEquals(0, catalog.objectRemarks.size());
-        final ObjectData objectData = catalog.objectData.get(0);
+         */
+        final QMFObject objectData = catalog.qmfObjects.get(0);
         assertEquals("owner", objectData.owner);
         assertEquals("name", objectData.name);
         assertEquals("type", objectData.type);

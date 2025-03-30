@@ -4,26 +4,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Catalog {
-    public final List<ObjectData> objectData;
-    public final List<ObjectRemarks> objectRemarks;
-    public final List<ObjectDirectory> objectDirectories;
+    public final List<QMFObject> qmfObjects;
 
-    public Catalog(List<ObjectData> objectData, List<ObjectRemarks> objectRemarks, List<ObjectDirectory> objectDirectories) {
-        this.objectData = objectData;
-        this.objectRemarks = objectRemarks;
-        this.objectDirectories = objectDirectories;
+    public Catalog(List<QMFObject> qmfObjects) {
+        this.qmfObjects = qmfObjects;
     }
 
     @Override
     public String toString() {
-        return "objectData:\n" + objectData.stream()
-                .map(ObjectData::toString)
+        return "Catalog{" +
+                "objects=" + qmfObjects.stream()
+                .map(QMFObject::toString)
                 .collect(Collectors.joining("\n")) +
-                "\nobjectRemarks:\n" + objectRemarks.stream()
-                .map(ObjectRemarks::toString)
-                .collect(Collectors.joining("\n")) +
-                "\nobjectDirectories:\n" + objectDirectories.stream()
-                .map(ObjectDirectory::toString)
-                .collect(Collectors.joining("\n"));
+                '}';
     }
 }
