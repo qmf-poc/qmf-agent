@@ -1,5 +1,6 @@
 package qmf.poc.agent.catalog;
 
+import com.google.gson.Gson;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
@@ -16,10 +17,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -105,19 +104,34 @@ public class CatalogProvider implements Closeable {
     }
 
     public static void printCatalog(Args args) {
-        log.debug("printCatalog.enter");
-        try (final CatalogProvider provider = new CatalogProvider(args)) {
-            for (int i = 1; i <= args.repeat; i++) {
-                if (i > 1) {
-                    Thread.sleep(1000);
+        if (args.json) {
+            try (final CatalogProvider provider = new CatalogProvider(args)) {
+                final Catalog catalog = provider.catalog();
+                final Gson gson = new Gson();
+                System.out.println("[");
+                for (int i = 0; i < catalog.qmfObjects.size(); i++) {
+                    final QMFObject qmfObject = catalog.qmfObjects.get(i);
+                    System.out.println(gson.toJson(qmfObject) + (i < catalog.qmfObjects.size() - 1 ? "," : ""));
                 }
-                System.out.println(provider.catalog().toString());
+                System.out.println("]");
+            } catch (SQLException e) {
+                log.error("printCatalog.failed: " + e.getMessage(), e);
             }
-            log.debug("printCatalog.exit");
-        } catch (SQLException e) {
-            log.error("printCatalog.failed: " + e.getMessage(), e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        } else {
+            log.debug("printCatalog.enter");
+            try (final CatalogProvider provider = new CatalogProvider(args)) {
+                for (int i = 1; i <= args.repeat; i++) {
+                    if (i > 1) {
+                        Thread.sleep(1000);
+                    }
+                    System.out.println(provider.catalog().toString());
+                }
+                log.debug("printCatalog.exit");
+            } catch (SQLException e) {
+                log.error("printCatalog.failed: " + e.getMessage(), e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

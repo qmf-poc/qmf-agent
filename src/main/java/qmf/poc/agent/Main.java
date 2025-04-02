@@ -16,9 +16,9 @@ public class Main {
             final Args args = new Args(cli);
 
             if (args.printHelp) args.printHelp();
+            if (args.printVersion) System.out.println("agent-0.0.1");
             if (args.printCatalog) CatalogProvider.printCatalog(args);
             if (args.runQMFObject) QMFObjectRunner.runQMFObject(args);
-            if (args.printVersion) System.out.println("agent-0.0.1");
             if (args.connectToService)
                 WebSockerProvider.listen(args, new Broker(new CatalogProvider(args), new QMFObjectRunner(args)));
 

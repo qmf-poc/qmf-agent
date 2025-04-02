@@ -26,6 +26,7 @@ public class Args {
     public final String qmfDatasource;
     public final String qmfFolder;
     public final String qmfRun;
+    public final boolean json;
 
     public Args(String[] args) throws ParseException {
         syntax = "java -jar agent-[version].jar";
@@ -63,6 +64,7 @@ public class Args {
         qmfFolder = getOptionValue(cmd, QMF_FOLDER, System.getProperty("user.home") + "/Application Data/IBM/QMF for WebSphere");
         qmfRun = getOptionValue(cmd, QMF_RUN, null);
         runQMFObject = qmfRun != null;
+        json = hasOption(cmd, JSON);
     }
 
     public void printHelp() {
@@ -94,6 +96,7 @@ public class Args {
         options.addOption("a", AGENT_MODE, false, "agent mode. Shorthand for -w " + DEFAULT_URI);
         options.addOption("c", CHARSET, true, "charset for long data, default UTF-8");
         options.addOption("e", QMF_CONNECTION, true, "QMF connection");
+        options.addOption("f", JSON, false, "print as JSON");
         options.addOption("g", PRINT_CATALOG, false, "Fetch catalog and print");
         options.addOption("h", HELP, false, "Show help");
         options.addOption("i", QMF_USER, true, "QMF user");
@@ -121,6 +124,7 @@ public class Args {
     private static final String DB2USER = "db2user";
     private static final String DB2PASSWORD = "db2password";
     private static final String PRINT_CATALOG = "print-catalog";
+    private static final String JSON = "json";
     private static final String WEBSOCKET_URI = "websocket-uri";
     private static final String QMF_CONNECTION = "qmf-connection";
     private static final String QMF_USER = "qmf-user";

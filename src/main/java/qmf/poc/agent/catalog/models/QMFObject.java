@@ -33,6 +33,6 @@ public class QMFObject {
     @Override
     public String toString() {
         final String ad = appldata.length() > 200 ? appldata.substring(0, 200) + "..." : appldata;
-        return owner + "|" + name + "|" + type + "'|'" + ad;
+        return owner + "|" + name + "|" + type + "|" + ad;
     }
 }
