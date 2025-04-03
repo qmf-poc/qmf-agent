@@ -31,7 +31,9 @@ public class QMFObjectRunner {
         password = args.db2password;
     }
 
-    public String retrieveObjectHTML(String owner, String name, String format) throws Exception {
+    public String retrieveObjectHTML(String owner, String name, String format, int limit) throws Exception {
+        log.debug("retrieveObjectHTML, with limit to " + limit);
+        
         log.debug("QMFObjectRunner use folder: " + qmfFolder);
         QMF api = new QMF(qmfFolder);
 
@@ -55,7 +57,13 @@ public class QMFObjectRunner {
 
                 log.debug("QMFObjectRunner save html result to tmp file: " + tempFile);
                 results.saveToFile(options, QueryResults.DATA_HTML, "");
-                return Files.readString(tempFile, StandardCharsets.UTF_8);
+                String full = Files.readString(tempFile, StandardCharsets.UTF_8);
+                if (limit >= 0) {
+                   log.debug("QMFObjectRunner truncate html result to " + limit + " rows");
+                } else {
+                     log.debug("QMFObjectRunner no truncation of html result");
+                }
+                return limit >= 0 ? trunkHTMLTable(full, limit) : full;
             } finally {
                 Files.deleteIfExists(tempFile);
             }
@@ -76,11 +84,21 @@ public class QMFObjectRunner {
             String owner = run[0];
             String name = run[1];
             String format = "html";
-            String result = qmfObjectRunner.retrieveObjectHTML(owner, name, format);
+            String result = qmfObjectRunner.retrieveObjectHTML(owner, name, format, -1);
             System.out.println(result);
         } catch (Exception e) {
             log.error("Failed to run QMF object", e);
         }
+    }
+
+    static String trunkHTMLTable(String html, int nRows) {
+        int n = 0;
+        int trClosePos = html.indexOf("</tr>");
+        while (trClosePos > 0 && n < nRows) {
+            trClosePos = html.indexOf("</tr>", trClosePos + 5);
+            n++;
+        }
+        return html.substring(0, trClosePos + 5)+"\n</table></body></html>";
     }
     private static final Log log = LogFactory.getLog("agent");
 }

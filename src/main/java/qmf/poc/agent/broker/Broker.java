@@ -55,7 +55,10 @@ public class Broker {
             throw new ParseException("Missing name parameter", 0);
         }
 
-        final String result = qmfObjectRunner.retrieveObjectHTML(owner, name, "html");
+        Double nRowsS = (Double) params.get("limit");
+        int nRows = nRowsS == null ? -1 : nRowsS.intValue();
+
+        final String result = qmfObjectRunner.retrieveObjectHTML(owner, name, "html", nRows);
 
         if (log.isDebugEnabled()) {
             log.debug("handled: run, id=" + id + ", result=\"" + result.substring(0, min(200, result.length())) + "\"");
