@@ -99,8 +99,16 @@ public class QMFObjectRunner {
     }
 
     static String trunkHTMLTable(String html, int nRows) {
+        if (html.length() <1024) {
+            // don't touch small html
+            return html;
+        }
         int n = 0;
         int trClosePos = html.indexOf("</tr>");
+        if (trClosePos < 0) {
+            // no table found
+            return html;
+        }
         while (trClosePos > 0 && n < nRows) {
             trClosePos = html.indexOf("</tr>", trClosePos + 5);
             n++;
