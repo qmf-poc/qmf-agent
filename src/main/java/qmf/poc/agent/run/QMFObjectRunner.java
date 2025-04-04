@@ -1,9 +1,6 @@
 package qmf.poc.agent.run;
 
-import com.ibm.qmf.api.QMF;
-import com.ibm.qmf.api.Query;
-import com.ibm.qmf.api.QueryResults;
-import com.ibm.qmf.api.SaveResultsToFileOptions;
+import com.ibm.qmf.api.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import qmf.poc.agent.Args;
@@ -31,17 +28,26 @@ public class QMFObjectRunner {
         password = args.db2password;
     }
 
+    private Session _cacheSession = null;
+
+    private Session getSession() throws Exception {
+        if (_cacheSession == null) {
+            log.debug("QMFObjectRunner use folder: " + qmfFolder);
+            QMF api = new QMF(qmfFolder);
+
+            log.debug("QMFObjectRunner use repository: connection=" + qmfConnection);
+            api.setActiveRepository(qmfConnection, qmfUser, qmfPassword, user, password);
+
+            log.debug("QMFObjectRunner use data source: ");
+            _cacheSession = api.createSession(qmfDatasource, user, password);
+        } else {
+            log.debug("QMFObjectRunner use cached session");
+        }
+        return _cacheSession;
+    }
+
     public String retrieveObjectHTML(String owner, String name, String format, int limit) throws Exception {
-        log.debug("retrieveObjectHTML, with limit to " + limit);
-        
-        log.debug("QMFObjectRunner use folder: " + qmfFolder);
-        QMF api = new QMF(qmfFolder);
-
-        log.debug("QMFObjectRunner use repository: connection=" + qmfConnection);
-        api.setActiveRepository(qmfConnection, qmfUser, qmfPassword, user, password);
-
-        log.debug("QMFObjectRunner use data source: ");
-        var session = api.createSession(qmfDatasource, user, password);
+        Session session = getSession();
 
         Object retrieved = session.retrieveObject(owner, name);
         if (retrieved instanceof Query) {
@@ -55,8 +61,9 @@ public class QMFObjectRunner {
                 query.run();
                 QueryResults results = query.getResults();
 
-                log.debug("QMFObjectRunner save html result to tmp file: " + tempFile);
+                log.debug("QMFObjectRunner save html result to tmp file: " + tempFile + "...");
                 results.saveToFile(options, QueryResults.DATA_HTML, "");
+                log.debug("QMFObjectRunner saved html result to tmp file: " + tempFile);
                 String full = Files.readString(tempFile, StandardCharsets.UTF_8);
                 if (limit >= 0) {
                    log.debug("QMFObjectRunner truncate html result to " + limit + " rows");
