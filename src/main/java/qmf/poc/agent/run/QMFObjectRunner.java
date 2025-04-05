@@ -66,9 +66,9 @@ public class QMFObjectRunner {
                 log.debug("QMFObjectRunner saved html result to tmp file: " + tempFile);
                 String full = Files.readString(tempFile, StandardCharsets.UTF_8);
                 if (limit >= 0) {
-                   log.debug("QMFObjectRunner truncate html result to " + limit + " rows");
+                    log.debug("QMFObjectRunner truncate html result to " + limit + " rows");
                 } else {
-                     log.debug("QMFObjectRunner no truncation of html result");
+                    log.debug("QMFObjectRunner no truncation of html result");
                 }
                 return limit >= 0 ? trunkHTMLTable(full, limit) : full;
             } finally {
@@ -84,7 +84,7 @@ public class QMFObjectRunner {
     public static void runQMFObject(Args args) {
         String[] run = args.qmfRun.split(",");
         if (run.length != 2) {
-            log.error("Invalid run parameter: " + args.qmfRun+", expected <owner>,<name>");
+            log.error("Invalid run parameter: " + args.qmfRun + ", expected <owner>,<name>");
         }
         try {
             QMFObjectRunner qmfObjectRunner = new QMFObjectRunner(args);
@@ -99,21 +99,23 @@ public class QMFObjectRunner {
     }
 
     static String trunkHTMLTable(String html, int nRows) {
-        if (html.length() <1024) {
+        if (html.length() < 10) {
             // don't touch small html
             return html;
         }
-        int n = 0;
-        int trClosePos = html.indexOf("</tr>");
-        if (trClosePos < 0) {
-            // no table found
-            return html;
+
+        int trClosePos = -1;
+        for (int i = 0; i < nRows; i++) {
+            trClosePos = html.indexOf("</tr>", trClosePos + 1);
+            if (trClosePos == -1) {
+                // not enough rows found
+                return html;
+            }
         }
-        while (trClosePos > 0 && n < nRows) {
-            trClosePos = html.indexOf("</tr>", trClosePos + 5);
-            n++;
-        }
-        return html.substring(0, trClosePos + 5)+"\n</table></body></html>";
+
+        // Truncate the HTML after the last </tr> found
+        return html.substring(0, trClosePos + 5) + "\n</table></body></html>";
     }
+
     private static final Log log = LogFactory.getLog("agent");
 }
