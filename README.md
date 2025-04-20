@@ -29,6 +29,11 @@ typical use (listen for locally running service):
 java -jar target/agent-0.1.0-SNAPSHOT.jar -a
 ```
 
+announce the agent under name `agent1`:
+```shell
+java -jar target/agent-0.1.0-SNAPSHOT.jar -d agent1
+```
+
 listen for remote service:
 ```shell
 java -jar target/agent-0.1.0-SNAPSHOT.jar -w ws://localhost:8081/agent
