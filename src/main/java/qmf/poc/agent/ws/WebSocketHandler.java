@@ -2,7 +2,7 @@ package qmf.poc.agent.ws;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import qmf.poc.agent.broker.Broker;
+import qmf.poc.agent.jsonrpc.JsonRpcHandler;
 
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
@@ -17,11 +17,11 @@ public class WebSocketHandler implements WebSocket.Listener, WebSocketConnection
     // use StringBuffer over StringBuilder for thread safety
     private final StringBuffer accumulatedText = new StringBuffer();
     private final CompletableFuture<Optional<Throwable>> closeFuture = new CompletableFuture<>();
-    private final AtomicReference<WebSocket> ws = new AtomicReference<>();
-    private final Broker broker;
+    private final AtomicReference<WebSocket> ws = new AtomicReference<>(); // save it for close()
+    private final JsonRpcHandler jsonRpcHandler;
 
-    public WebSocketHandler(Broker broker) {
-        this.broker = broker;
+    public WebSocketHandler(JsonRpcHandler jsonRpcHandler) {
+        this.jsonRpcHandler = jsonRpcHandler;
     }
 
     public Optional<Throwable> listen() {
@@ -33,6 +33,7 @@ public class WebSocketHandler implements WebSocket.Listener, WebSocketConnection
         log.trace("WebSocketListener.onOpen, subProtocol=" + webSocket.getSubprotocol());
         ws.set(webSocket);
         WebSocket.Listener.super.onOpen(webSocket);
+        // webSocket.sendText("{\"jsonrpc\": \"2.0\", \"method\": \"alive\", \"params\": {\"agent\":\"" + agentId + "\"}}", true);
     }
 
     @Override
@@ -42,7 +43,7 @@ public class WebSocketHandler implements WebSocket.Listener, WebSocketConnection
         if (last) {
             final String response;
             try {
-                response = broker.handleJsonRPC(accumulatedText.toString());
+                response = jsonRpcHandler.handleJsonRPC(accumulatedText.toString());
                 if (response != null) {
                     log.debug("WebSocketListener.sendText, response=" + response.substring(0, min(200, response.length())));
                     webSocket.sendText(response, true);

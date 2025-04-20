@@ -2,7 +2,7 @@
   <configuration default="false" name="Main" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="qmf.poc.agent.Main" />
     <module name="agent" />
-    <option name="PROGRAM_PARAMETERS" value="--websocket-uri=ws://localhost:8081/agent" />
+    <option name="PROGRAM_PARAMETERS" value="--websocket-uri=ws://localhost:8081/agent --id=testagent" />
     <option name="VM_PARAMETERS" value="-Dorg.slf4j.simpleLogger.defaultLogLevel=TRACE" />
     <extension name="coverage">
       <pattern>

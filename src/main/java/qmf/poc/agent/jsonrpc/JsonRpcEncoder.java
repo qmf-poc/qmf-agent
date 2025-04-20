@@ -6,7 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonRpc {
+public class JsonRpcEncoder {
     private final Gson gson = new Gson();
 
     public Map<String, Object> parse(String message) {
@@ -14,7 +14,7 @@ public class JsonRpc {
         }.getType());
     }
 
-    public String formatResult(Integer id, Object result) {
+    public String formatResult(Long id, Object result) {
         Map<String, Object> response = new HashMap<>();
         response.put("jsonrpc", "2.0");
         response.put("id", id);
@@ -22,7 +22,7 @@ public class JsonRpc {
         return gson.toJson(response);
     }
 
-    public String formatResult(Integer id, String result) {
+    public String formatResult(Long id, String result) {
         Map<String, Object> response = new HashMap<>();
         response.put("jsonrpc", "2.0");
         response.put("id", id);
@@ -30,7 +30,7 @@ public class JsonRpc {
         return gson.toJson(response);
     }
 
-    public String formatError(Integer id, int code, String message) {
+    public String formatError(Long id, int code, String message) {
         Map<String, Object> response = new HashMap<>();
         response.put("jsonrpc", "2.0");
         response.put("id", id);

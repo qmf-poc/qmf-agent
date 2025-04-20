@@ -1,10 +1,9 @@
 package qmf.poc.agent;
 
-import com.cete.dynamicpdf.io.Q;
 import org.apache.commons.cli.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import qmf.poc.agent.broker.Broker;
+import qmf.poc.agent.jsonrpc.JsonRpcHandler;
 import qmf.poc.agent.catalog.CatalogProvider;
 import qmf.poc.agent.run.QMFObjectRunner;
 import qmf.poc.agent.ws.WebSockerProvider;
@@ -20,7 +19,7 @@ public class Main {
             if (args.printCatalog) CatalogProvider.printCatalog(args);
             if (args.runQMFObject) QMFObjectRunner.runQMFObject(args);
             if (args.connectToService)
-                WebSockerProvider.listen(args, new Broker(new CatalogProvider(args), new QMFObjectRunner(args)));
+                WebSockerProvider.listen(args, new JsonRpcHandler(new CatalogProvider(args), new QMFObjectRunner(args)));
 
         } catch (ParseException e) {
             System.err.println(e.getMessage());

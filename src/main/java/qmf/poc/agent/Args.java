@@ -9,6 +9,7 @@ import java.net.URI;
 public class Args {
     final String syntax;
 
+    public final String agentId;
     public final String db2cs;
     public final String db2user;
     public final String db2password;
@@ -33,6 +34,7 @@ public class Args {
         final CommandLineParser parser = new DefaultParser();
         final CommandLine cmd = parser.parse(getOptions(), args);
 
+        agentId = getOptionValue(cmd, AGENT_ID, "agent-" + System.currentTimeMillis() % 10000);
         db2cs = getOptionValue(cmd, DB2CS, "jdbc:db2://qmfdb2.s4y.solutions:50000/sample");
         db2user = getOptionValue(cmd, DB2USER, "db2inst1");
         db2password = getOptionValue(cmd, DB2PASSWORD, "password");
@@ -42,12 +44,12 @@ public class Args {
         printCatalog = hasOption(cmd, PRINT_CATALOG);
         if (hasOption(cmd, WEBSOCKET_URI)) {
             try {
-                serviceUri = new URI(getOptionValue(cmd, WEBSOCKET_URI, ""));
+                serviceUri = new URI(withAgentId(getOptionValue(cmd, WEBSOCKET_URI, "")));
             } catch (Exception e) {
                 throw new ParseException(e.getMessage());
             }
         } else if (hasOption(cmd, AGENT_MODE)) {
-            serviceUri = URI.create(DEFAULT_URI);
+            serviceUri = URI.create(withAgentId(DEFAULT_URI));
         } else {
             serviceUri = null;
         }
@@ -85,6 +87,11 @@ public class Args {
         return arg;
     }
 
+    private String withAgentId(String uri) {
+        if (uri == null) return null;
+        return uri + "?agent=" + agentId;
+    }
+
     private Boolean hasOption(CommandLine cmd, String option) {
         if (cmd.hasOption(option))
             return true;
@@ -95,6 +102,7 @@ public class Args {
         final Options options = new Options();
         options.addOption("a", AGENT_MODE, false, "agent mode. Shorthand for -w " + DEFAULT_URI);
         options.addOption("c", CHARSET, true, "charset for long data, default UTF-8");
+        options.addOption("d", AGENT_ID, true, "agent id. Arbitrary string");
         options.addOption("e", QMF_CONNECTION, true, "QMF connection");
         options.addOption("f", JSON, false, "print as JSON");
         options.addOption("g", PRINT_CATALOG, false, "Fetch catalog and print");
@@ -115,6 +123,7 @@ public class Args {
 
     @SuppressWarnings("unused")
     private static final Log log = LogFactory.getLog("agent");
+    private static final String AGENT_ID = "id";
     private static final String AGENT_MODE = "agent";
     private static final String CHARSET = "charset";
     private static final String HELP = "help";
