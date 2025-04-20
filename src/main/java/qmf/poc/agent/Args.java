@@ -142,5 +142,5 @@ public class Args {
     private static final String QMF_FOLDER = "qmf-folder";
     private static final String QMF_RUN = "qmf-run";
 
-    private static final String DEFAULT_URI = "ws://localhost:8081/agent";
+    private static final String DEFAULT_URI = "ws://localhost:8082/agent";
 }
