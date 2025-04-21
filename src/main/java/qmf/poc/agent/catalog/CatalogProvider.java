@@ -4,8 +4,8 @@ import com.google.gson.Gson;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qmf.poc.agent.Args;
 import qmf.poc.agent.catalog.models.*;
 
@@ -62,7 +62,7 @@ public class CatalogProvider implements Closeable {
             log.trace("objectsList.iterate");
             int count = 0;
             while (row.next()) {
-                log.trace("objectsList.iterate: " + ++count);
+                log.trace("objectsList.iterate: {}", ++count);
                 final String owner = row.getString("OWNER");
                 final String name = row.getString("NAME");
                 final String type = row.getString("TYPE");
@@ -80,7 +80,7 @@ public class CatalogProvider implements Closeable {
                 final QMFObject object = new QMFObject(owner, name, type, subType, objectLevel, restricted, model, created, modified, lastUsed, concatenatedApplData, remarks);
                 result.add(object);
             }
-            log.trace("objectsList.done: " + count);
+            log.trace("objectsList.done: {}", count);
         }
         return result;
     }
@@ -115,7 +115,7 @@ public class CatalogProvider implements Closeable {
                 }
                 System.out.println("]");
             } catch (SQLException e) {
-                log.error("printCatalog.failed: " + e.getMessage(), e);
+                log.error("printCatalog.failed: {}", e.getMessage(), e);
             }
         } else {
             log.debug("printCatalog.enter");
@@ -128,7 +128,7 @@ public class CatalogProvider implements Closeable {
                 }
                 log.debug("printCatalog.exit");
             } catch (SQLException e) {
-                log.error("printCatalog.failed: " + e.getMessage(), e);
+                log.error("printCatalog.failed: {}", e.getMessage(), e);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -163,6 +163,6 @@ public class CatalogProvider implements Closeable {
             "LEFT JOIN Q.OBJECT_DIRECTORY odir ON od.OWNER = odir.OWNER AND od.NAME = odir.NAME AND od.\"TYPE\" = odir.\"TYPE\""
     );
 
-    private static final Log log = LogFactory.getLog("agent");
+    private static final Logger log = LoggerFactory.getLogger("agent");
 
 }

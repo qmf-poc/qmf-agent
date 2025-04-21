@@ -1,10 +1,12 @@
 package qmf.poc.agent;
 
 import org.apache.commons.cli.*;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class Args {
     final String syntax;
@@ -44,12 +46,12 @@ public class Args {
         printCatalog = hasOption(cmd, PRINT_CATALOG);
         if (hasOption(cmd, WEBSOCKET_URI)) {
             try {
-                serviceUri = new URI(withAgentId(getOptionValue(cmd, WEBSOCKET_URI, "")));
+                serviceUri = new URI(withAgentIdAndDb(getOptionValue(cmd, WEBSOCKET_URI, "")));
             } catch (Exception e) {
                 throw new ParseException(e.getMessage());
             }
         } else if (hasOption(cmd, AGENT_MODE)) {
-            serviceUri = URI.create(withAgentId(DEFAULT_URI));
+            serviceUri = URI.create(withAgentIdAndDb(DEFAULT_URI));
         } else {
             serviceUri = null;
         }
@@ -87,9 +89,16 @@ public class Args {
         return arg;
     }
 
-    private String withAgentId(String uri) {
+    private String withAgentIdAndDb(String uri) {
         if (uri == null) return null;
-        return uri + "?agent=" + agentId;
+        final String dbName = db2cs.substring(db2cs.lastIndexOf('/') + 1);
+        try {
+            String encodedAgentId = URLEncoder.encode(agentId, StandardCharsets.UTF_8);
+            String encodedDbName = URLEncoder.encode(dbName, StandardCharsets.UTF_8);
+            return uri + "?agent=" + encodedAgentId + "&db=" + encodedDbName;
+        } catch (Exception e) {
+            throw new RuntimeException("Error encoding URI parameters", e);
+        }
     }
 
     private Boolean hasOption(CommandLine cmd, String option) {
@@ -122,7 +131,7 @@ public class Args {
     }
 
     @SuppressWarnings("unused")
-    private static final Log log = LogFactory.getLog("agent");
+    private static final Logger log = LoggerFactory.getLogger("agent");
     private static final String AGENT_ID = "id";
     private static final String AGENT_MODE = "agent";
     private static final String CHARSET = "charset";

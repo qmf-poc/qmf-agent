@@ -1,7 +1,7 @@
 package qmf.poc.agent.jsonrpc;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qmf.poc.agent.catalog.CatalogProvider;
 import qmf.poc.agent.catalog.models.Catalog;
 import qmf.poc.agent.run.QMFObjectRunner;
@@ -24,26 +24,26 @@ public class JsonRpcHandler {
 
     private String handlePing(Long id, Map<String, Object> params) {
         String payload = params.get("payload") == null ? "null" : params.get("payload").toString();
-        log.debug("handleMethod: ping, id=" + id + ", payload=" + payload);
+        log.debug("handleMethod: ping, id={}, payload={}", id, payload);
         String result = "pong: " + payload;
-        log.debug("handled: ping, id=" + id + ", result=\"" + result + "\"");
+        log.debug("handled: ping, id={}, result=\"{}\"", id, result);
         return jsonRpcEncoder.formatResult(id, result);
     }
 
     private String handleSnapshot(Long id) throws SQLException {
-        log.debug("method: snapshot, id=" + id);
+        log.debug("method: snapshot, id={}", id);
         // TODO: handle exception join does not return?
         // final Catalog catalog = catalogProvider.catalogParallel().join();
         final Catalog catalog = catalogProvider.catalog();
         if (log.isDebugEnabled()) {
             String res = catalog.toString();
-            log.debug("handled: snapshot, id=" + id + ", result=\"" + res.substring(0, min(200, res.length())) + "\"");
+            log.debug("handled: snapshot, id={}, result=\"{}\"", id, res.substring(0, min(200, res.length())));
         }
         return jsonRpcEncoder.formatResult(id, Map.of("catalog", catalog));
     }
 
     private String handleRun(Long id, Map<String, Object> params) throws Exception {
-        log.debug("method: run, id=" + id);
+        log.debug("method: run, id={}", id);
 
         String owner = (String) params.get("owner");
         if (owner == null) {
@@ -60,13 +60,13 @@ public class JsonRpcHandler {
         final String result = qmfObjectRunner.retrieveObjectHTML(owner, name, "html", nRows);
 
         if (log.isDebugEnabled()) {
-            log.debug("handled: run, id=" + id + ", result=\"" + result.substring(0, min(200, result.length())) + "\"");
+            log.debug("handled: run, id={}, result=\"{}\"", id, result.substring(0, min(200, result.length())));
         }
         return jsonRpcEncoder.formatResult(id, Map.of("body", result, "owner", owner, "name", name));
     }
 
     public String handleJsonRPC(String message) {
-        log.debug("handleJsonRPC: " + message);
+        log.debug("handleJsonRPC: {}", message);
         try {
             final Map<String, Object> json = jsonRpcEncoder.parse(message);
             final Double idd = (Double) json.get("id");
@@ -119,5 +119,5 @@ public class JsonRpcHandler {
         return null;
     }
 
-    private static final Log log = LogFactory.getLog(JsonRpcHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(JsonRpcHandler.class);
 }

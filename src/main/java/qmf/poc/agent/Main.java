@@ -1,9 +1,9 @@
 package qmf.poc.agent;
 
 import org.apache.commons.cli.*;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import qmf.poc.agent.jsonrpc.JsonRpcHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qmf.poc.agent.catalog.CatalogProvider;
 import qmf.poc.agent.run.QMFObjectRunner;
 import qmf.poc.agent.ws.WebSockerProvider;
@@ -15,7 +15,7 @@ public class Main {
             final Args args = new Args(cli);
 
             if (args.printHelp) args.printHelp();
-            if (args.printVersion) System.out.println("agent-0.0.1");
+            if (args.printVersion) Version.printVersion(log);
             if (args.printCatalog) CatalogProvider.printCatalog(args);
             if (args.runQMFObject) QMFObjectRunner.runQMFObject(args);
             if (args.connectToService)
@@ -28,5 +28,5 @@ public class Main {
     }
 
     @SuppressWarnings("unused")
-    private static final Log log = LogFactory.getLog("agent");
+    private static final Logger log = LoggerFactory.getLogger("agent");
 }
